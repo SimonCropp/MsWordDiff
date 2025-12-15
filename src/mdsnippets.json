@@ -1,0 +1,12 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/SimonCropp/MarkdownSnippets/master/schema.json",
+  "Convention": "InPlaceOverwrite",
+  "TocExcludes": [
+    "NuGet packages",
+    "Release Notes",
+    "Icon",
+    "Supported Diff Tools"
+  ],
+  "MaxWidth": 90,
+  "ValidateContent": true
+}

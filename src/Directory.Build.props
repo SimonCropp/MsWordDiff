@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <NoWarn>CS1591;CS0649;NU1608;NU1109</NoWarn>
+    <Version>17.0.2</Version>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <PackageTags>Testing, Snapshot, Diff, Compare</PackageTags>
+    <Description>Launches diff tools based on file extensions. Designed to be consumed by snapshot testing libraries.</Description>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <SignAssembly>true</SignAssembly>
+    <ContinuousIntegrationBuild>false</ContinuousIntegrationBuild>
+    <AssemblyOriginatorKeyFile>..\key.snk</AssemblyOriginatorKeyFile>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+    <ResolveAssemblyReferencesSilent>true</ResolveAssemblyReferencesSilent>
+    <NoWarn>CA1416;CS1591</NoWarn>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="System.Runtime.InteropServices" />
+  </ItemGroup>
+</Project>
