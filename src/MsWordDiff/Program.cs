@@ -43,10 +43,10 @@ public static partial class Program
         {
             BasicLimitInformation = new()
             {
-                LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+                LimitFlags = jobObjectLimitKillOnJobClose
             }
         };
-        SetInformationJobObject(job, JobObjectExtendedLimitInformation, ref info, (uint)Marshal.SizeOf(info));
+        SetInformationJobObject(job, jobObjectExtendedLimitInformation, ref info, (uint)Marshal.SizeOf(info));
 
         dynamic word = Activator.CreateInstance(wordType)!;
 
@@ -107,8 +107,8 @@ public static partial class Program
         return 0;
     }
 
-    const uint JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000;
-    const int JobObjectExtendedLimitInformation = 9;
+    const uint jobObjectLimitKillOnJobClose = 0x2000;
+    const int jobObjectExtendedLimitInformation = 9;
 
     [StructLayout(LayoutKind.Sequential)]
     struct JOBOBJECT_BASIC_LIMIT_INFORMATION
