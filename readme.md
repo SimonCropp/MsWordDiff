@@ -45,6 +45,8 @@ This will open Microsoft Word with a comparison view showing the differences bet
 
  * https://nuget.org/packages/MsWordDiff/
 
+<img src="/src/diff.png">
+
 
 ## How It Works
 
