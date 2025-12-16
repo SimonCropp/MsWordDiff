@@ -1,38 +1,44 @@
 public static class Program
 {
-    static int Main(string[] args)
+    public static int Main(string[] args)
     {
         Logging.Init();
-        if (args.Length != 2)
-        {
-            Console.Error.WriteLine("Usage: diffword <path1> <path2>");
-            return 1;
-        }
+        var command = BuildCommand(Word.Launch);
+        return command.Invoke(args);
+    }
 
-        var path1 = Path.GetFullPath(args[0]);
-        var path2 = Path.GetFullPath(args[1]);
+    public static RootCommand BuildCommand(Action<string, string> launchAction)
+    {
+        var path1Argument = new Argument<FileInfo>("path1", "Path to the first Word document")
+        {
+            Arity = ArgumentArity.ExactlyOne
+        }.ExistingOnly();
 
-        if (!File.Exists(path1))
+        var path2Argument = new Argument<FileInfo>("path2", "Path to the second Word document")
         {
-            Log.Error("File not found: {Path1}", path1);
-            return 1;
-        }
+            Arity = ArgumentArity.ExactlyOne
+        }.ExistingOnly();
 
-        if (!File.Exists(path2))
+        var rootCommand = new RootCommand("Compare two Word documents side by side using Microsoft Word")
         {
-            Log.Error("File not found: {Path2}", path2);
-            return 1;
-        }
+            path1Argument,
+            path2Argument
+        };
+        rootCommand.Name = "diff";
 
-        try
+        rootCommand.SetHandler((path1, path2) =>
         {
-            Word.Launch(path1, path2);
-            return 0;
-        }
-        catch (Exception exception)
-        {
-            Log.Error(exception, "Failed to launch");
-            return 1;
-        }
+            try
+            {
+                launchAction(path1.FullName, path2.FullName);
+            }
+            catch (Exception exception)
+            {
+                Log.Error(exception, "Failed to launch");
+                throw;
+            }
+        }, path1Argument, path2Argument);
+
+        return rootCommand;
     }
 }
