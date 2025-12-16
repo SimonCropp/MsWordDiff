@@ -74,6 +74,9 @@ public static partial class Word
         using var process = Process.GetProcessById(processId);
         AssignProcessToJobObject(job, process.Handle);
 
+        // Bring Word to the foreground
+        SetForegroundWindow(hwnd);
+
         process.WaitForExit();
 
         // Release COM objects
@@ -123,6 +126,10 @@ public static partial class Word
 
     [LibraryImport("user32.dll")]
     internal static partial uint GetWindowThreadProcessId(IntPtr hWnd, out int processId);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SetForegroundWindow(IntPtr hWnd);
 
     [LibraryImport("kernel32.dll", EntryPoint = "CreateJobObjectW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     private static partial IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
