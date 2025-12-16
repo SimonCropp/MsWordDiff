@@ -23,6 +23,9 @@ Install as a global tool:
 dotnet tool install -g MsWordDiff
 ```
 
+https://nuget.org/packages/MsWordDiff/
+
+
 
 ## Usage
 
@@ -39,14 +42,6 @@ diffword original.docx modified.docx
 ```
 
 This will open Microsoft Word with a comparison view showing the differences between the two documents. The tool will wait until Word is closed before exiting.
-
-
-## NuGet
-
- * https://nuget.org/packages/MsWordDiff/
-
-
-## UX
 
 <img src="/src/diff.png">
 
