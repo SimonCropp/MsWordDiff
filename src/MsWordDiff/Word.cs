@@ -30,7 +30,8 @@ public static partial class Word
         // WdCompareDestination.wdCompareDestinationNew = 2
         // WdGranularity.wdGranularityWordLevel = 1
         var comparedDoc = word.CompareDocuments(
-            doc1, doc2,
+            doc1,
+            doc2,
             Destination: 2,
             Granularity: 1,
             CompareFormatting: true,
@@ -52,21 +53,13 @@ public static partial class Word
         // Mark as saved so Word won't prompt to save on close
         comparedDoc.Saved = true;
 
-        // Disable spelling and grammar checks
+        comparedDoc.AutoSaveOn = false;
         comparedDoc.ShowSpellingErrors = false;
         comparedDoc.ShowGrammaticalErrors = false;
 
-        //TODO: make this an option
-        // Make document read-only (wdAllowOnlyReading = 3)
-        //comparedDoc.Protect(Type: 3);
-
         word.Visible = true;
 
-        // Minimize the ribbon if not already minimized
-        if (!word.CommandBars.GetPressedMso("MinimizeRibbon"))
-        {
-            word.CommandBars.ExecuteMso("MinimizeRibbon");
-        }
+        MinimizeRibbon(word);
 
         // Get process from Word's window handle and assign to job
         var hwnd = (IntPtr)word.ActiveWindow.Hwnd;
@@ -79,10 +72,17 @@ public static partial class Word
 
         process.WaitForExit();
 
-        // Release COM objects
         Marshal.ReleaseComObject(comparedDoc);
         Marshal.ReleaseComObject(word);
         CloseHandle(job);
+    }
+
+    static void MinimizeRibbon(dynamic word)
+    {
+        if (!word.CommandBars.GetPressedMso("MinimizeRibbon"))
+        {
+            word.CommandBars.ExecuteMso("MinimizeRibbon");
+        }
     }
 
     const uint jobObjectLimitKillOnJobClose = 0x2000;
