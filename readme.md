@@ -8,9 +8,6 @@
 **See [Milestones](../../milestones?state=closed) for release notes.**
 
 
-[![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSourceSupport)
-
-
 ## NuGet
 
  * https://nuget.org/packages/MsWordDiff/
