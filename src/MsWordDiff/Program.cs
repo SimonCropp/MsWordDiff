@@ -2,6 +2,7 @@ public static partial class Program
 {
     static int Main(string[] args)
     {
+        Logging.Init();
         if (args.Length != 2)
         {
             Console.Error.WriteLine("Usage: diffengine-word <path1> <path2>");
@@ -19,21 +20,21 @@ public static partial class Program
         path1 = Path.GetFullPath(path1);
         if (!File.Exists(path1))
         {
-            Console.Error.WriteLine($"File not found: {path1}");
+            Log.Error("File not found: {Path1}", path1);
             return 1;
         }
 
         path2 = Path.GetFullPath(path2);
         if (!File.Exists(path2))
         {
-            Console.Error.WriteLine($"File not found: {path2}");
+            Log.Error("File not found: {Path2}", path2);
             return 1;
         }
 
         var wordType = Type.GetTypeFromProgID("Word.Application");
         if (wordType == null)
         {
-            Console.Error.WriteLine("Microsoft Word is not installed");
+            Log.Error("Microsoft Word is not installed");
             return 1;
         }
 

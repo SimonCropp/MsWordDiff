@@ -5,15 +5,16 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="MarkdownSnippets.MsBuild" Version="28.0.0-beta.8" />
-    <PackageVersion Include="Microsoft.Sbom.Targets" Version="4.1.4" />
+    <PackageVersion Include="Microsoft.Sbom.Targets" Version="4.1.5" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageVersion Include="ProjectDefaults" Version="1.0.163" />
     <PackageVersion Include="ProjectFiles" Version="0.2.0" />
     <PackageVersion Include="Serilog" Version="4.3.0" />
     <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageVersion Include="Verify.DiffPlex" Version="3.1.2" />
     <PackageVersion Include="Verify.ImageMagick" Version="3.8.1" />
     <PackageVersion Include="Verify.TUnit" Version="31.8.0" />
-    <PackageVersion Include="TUnit" Version="1.5.53" />
+    <PackageVersion Include="TUnit" Version="1.5.60" />
   </ItemGroup>
 </Project>
