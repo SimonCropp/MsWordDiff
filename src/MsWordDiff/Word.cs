@@ -24,12 +24,12 @@ public static partial class Word
         // WdAlertLevel.wdAlertsNone = 0
         word.DisplayAlerts = 0;
 
-        var doc1 = word.Documents.Open(path1, ReadOnly: true, AddToRecentFiles: false);
-        var doc2 = word.Documents.Open(path2, ReadOnly: true, AddToRecentFiles: false);
+        var doc1 = Open(word, path1);
+        var doc2 = Open(word, path2);
 
         // WdCompareDestination.wdCompareDestinationNew = 2
         // WdGranularity.wdGranularityWordLevel = 1
-        var comparedDoc = word.CompareDocuments(
+        var compare = word.CompareDocuments(
             doc1,
             doc2,
             Destination: 2,
@@ -51,11 +51,11 @@ public static partial class Word
         doc2.Close(SaveChanges: false);
 
         // Mark as saved so Word won't prompt to save on close
-        comparedDoc.Saved = true;
+        compare.Saved = true;
 
-        comparedDoc.AutoSaveOn = false;
-        comparedDoc.ShowSpellingErrors = false;
-        comparedDoc.ShowGrammaticalErrors = false;
+        compare.AutoSaveOn = false;
+        compare.ShowSpellingErrors = false;
+        compare.ShowGrammaticalErrors = false;
 
         word.Visible = true;
 
@@ -72,10 +72,13 @@ public static partial class Word
 
         process.WaitForExit();
 
-        Marshal.ReleaseComObject(comparedDoc);
+        Marshal.ReleaseComObject(compare);
         Marshal.ReleaseComObject(word);
         CloseHandle(job);
     }
+
+    static dynamic Open(dynamic word, string path) =>
+        word.Documents.Open(path, ReadOnly: true, AddToRecentFiles: false);
 
     static void MinimizeRibbon(dynamic word)
     {
