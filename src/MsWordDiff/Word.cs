@@ -62,6 +62,12 @@ public static partial class Word
 
         word.Visible = true;
 
+        // Minimize the ribbon if not already minimized
+        if (!word.CommandBars.GetPressedMso("MinimizeRibbon"))
+        {
+            word.CommandBars.ExecuteMso("MinimizeRibbon");
+        }
+
         // Get process from Word's window handle and assign to job
         var hwnd = (IntPtr)word.ActiveWindow.Hwnd;
         GetWindowThreadProcessId(hwnd, out var processId);
