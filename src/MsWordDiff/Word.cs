@@ -59,6 +59,10 @@ public static partial class Word
 
         word.Visible = true;
 
+        // WdShowSourceDocuments.wdShowSourceDocumentsBoth = 3
+        // Shows the original and revised documents alongside the comparison
+        word.ActiveWindow.ShowSourceDocuments = 3;
+
         MinimizeRibbon(word);
 
         // Get process from Word's window handle and assign to job
