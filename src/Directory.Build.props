@@ -4,12 +4,11 @@
     <Version>0.1.0</Version>
     <AssemblyVersion>1.0.0</AssemblyVersion>
     <PackageTags>Word, Diff, Compare</PackageTags>
-    <Description>Launches diff tools based on file extensions. Designed to be consumed by snapshot testing libraries.</Description>
+    <Description>A .NET tool that compares two Word documents side by side using Microsoft Word's built-in document comparison feature.</Description>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
-    <SignAssembly>true</SignAssembly>
+    <SignAssembly>false</SignAssembly>
     <ContinuousIntegrationBuild>false</ContinuousIntegrationBuild>
-    <AssemblyOriginatorKeyFile>..\key.snk</AssemblyOriginatorKeyFile>
     <ResolveAssemblyReferencesSilent>true</ResolveAssemblyReferencesSilent>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>

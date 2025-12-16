@@ -1,0 +1,1 @@
+A .NET tool that compares two Word documents side by side using Microsoft Word's built-in document comparison feature.

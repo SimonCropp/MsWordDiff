@@ -5,7 +5,7 @@ public static class Program
         Logging.Init();
         if (args.Length != 2)
         {
-            Console.Error.WriteLine("Usage: diffengine-word <path1> <path2>");
+            Console.Error.WriteLine("Usage: diffword <path1> <path2>");
             return 1;
         }
 

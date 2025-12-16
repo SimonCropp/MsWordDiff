@@ -3,7 +3,7 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/sw0q9icdhhtau66m/branch/main?svg=true)](https://ci.appveyor.com/project/SimonCropp/MsWordDiff)
 [![NuGet Status](https://img.shields.io/nuget/v/MsWordDiff.svg?label=MsWordDiff)](https://www.nuget.org/packages/MsWordDiff/)
 
-A .NET tool that compares two Word documents side by side using Microsoft Word's built-in document comparison feature.
+A .NET tool that compares two Word documents side by side using Microsoft Word's built-in document comparison feature.<!-- singleLineInclude: intro. path: /src/intro.include.md -->
 
 **See [Milestones](../../milestones?state=closed) for release notes.**
 
