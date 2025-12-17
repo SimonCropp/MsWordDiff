@@ -28,49 +28,35 @@ public class CommandParsingTests
     [Test]
     public async Task MissingBothArguments_ReturnsErrorWithArgumentNames()
     {
-        var wasCalled = false;
-        var errorOutput = new StringWriter();
-        var command = Program.BuildCommand((_, _) => wasCalled = true, errorOutput);
+        var command = Program.BuildCommand((_, _) =>
+        {
+        });
 
-        var exitCode = command.Parse([]).Invoke();
-
-        var errors = errorOutput.ToString();
-        await Assert.That(exitCode).IsNotEqualTo(0);
-        await Assert.That(errors).Contains("Required argument missing: <path1>");
-        await Assert.That(errors).Contains("Required argument missing: <path2>");
-        await Assert.That(wasCalled).IsFalse();
+        var result = command.Parse([]);
+        await Verify(result.Errors.Select(_ => _.Message));
     }
 
     [Test]
     public async Task MissingSingleArgument_ReturnsErrorWithArgumentName()
     {
-        var wasCalled = false;
-        var errorOutput = new StringWriter();
-        var command = Program.BuildCommand((_, _) => wasCalled = true, errorOutput);
+        var command = Program.BuildCommand((_, _) =>
+        {
+        });
 
-        var exitCode = command.Parse([ProjectFiles.input_temp_docx.FullPath]).Invoke();
-
-        var errors = errorOutput.ToString();
-        await Assert.That(exitCode).IsNotEqualTo(0);
-        await Assert.That(errors).DoesNotContain("Required argument missing: <path1>");
-        await Assert.That(errors).Contains("Required argument missing: <path2>");
-        await Assert.That(wasCalled).IsFalse();
+        var result = command.Parse([ProjectFiles.input_temp_docx.FullPath]);
+        await Verify(result.Errors.Select(_ => _.Message));
     }
 
     [Test]
     public async Task NonExistentFile_ReturnsErrorWithFilePath()
     {
-        var wasCalled = false;
-        var errorOutput = new StringWriter();
-        var command = Program.BuildCommand((_, _) => wasCalled = true, errorOutput);
+        var command = Program.BuildCommand((_, _) =>
+        {
+        });
 
-        var exitCode = command.Parse(["nonexistent.docx", ProjectFiles.input_target_docx.FullPath]).Invoke();
+        var result = command.Parse(["nonexistent.docx", ProjectFiles.input_target_docx.FullPath]);
 
-        var errors = errorOutput.ToString();
-        await Assert.That(exitCode).IsNotEqualTo(0);
-        await Assert.That(errors).Contains("File not found:");
-        await Assert.That(errors).Contains("nonexistent.docx");
-        await Assert.That(wasCalled).IsFalse();
+        await Verify(result.Errors.Select(_ => _.Message));
     }
 
     [Test]

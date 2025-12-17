@@ -10,6 +10,8 @@
     <PackageReference Include="ProjectFiles" />
     <PackageReference Include="TUnit" />
     <PackageReference Include="ProjectDefaults" PrivateAssets="all" />
+    <PackageReference Include="Verify.Serilog" />
+    <PackageReference Include="Verify.TUnit" />
     <ProjectReference Include="..\MsWordDiff\MsWordDiff.csproj" />
     <Content Include="input.*.docx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

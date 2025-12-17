@@ -7,20 +7,26 @@ public static class Program
         return command.Parse(args).Invoke();
     }
 
-    public static RootCommand BuildCommand(Action<string, string> launchAction, TextWriter? errorOutput = null)
+    public static RootCommand BuildCommand(Action<string, string> launchAction)
     {
-        errorOutput ??= Console.Error;
-
-        var path1Argument = new Argument<FileInfo?>("path1")
+        var path1Argument = new Argument<FileInfo>("path1")
         {
             Description = "Path to the first Word document",
-            Arity = ArgumentArity.ZeroOrOne
+            Arity = ArgumentArity.ExactlyOne,
+            Validators =
+            {
+                fileExists
+            }
         };
 
-        var path2Argument = new Argument<FileInfo?>("path2")
+        var path2Argument = new Argument<FileInfo>("path2")
         {
             Description = "Path to the second Word document",
-            Arity = ArgumentArity.ZeroOrOne
+            Arity = ArgumentArity.ExactlyOne,
+            Validators =
+            {
+                fileExists
+            }
         };
 
         var rootCommand = new RootCommand("Compare two Word documents side by side using Microsoft Word");
@@ -31,37 +37,6 @@ public static class Program
         {
             var path1 = parseResult.GetValue(path1Argument);
             var path2 = parseResult.GetValue(path2Argument);
-
-            var errors = new List<string>();
-
-            if (path1 is null)
-            {
-                errors.Add("Required argument missing: <path1>");
-            }
-            else if (!path1.Exists)
-            {
-                errors.Add($"File not found: {path1.FullName}");
-            }
-
-            if (path2 is null)
-            {
-                errors.Add("Required argument missing: <path2>");
-            }
-            else if (!path2.Exists)
-            {
-                errors.Add($"File not found: {path2.FullName}");
-            }
-
-            if (errors.Count > 0)
-            {
-                errorOutput.WriteLine("Usage: diffword <path1> <path2>");
-                errorOutput.WriteLine();
-                foreach (var error in errors)
-                {
-                    errorOutput.WriteLine(error);
-                }
-                return 1;
-            }
 
             try
             {
@@ -77,4 +52,14 @@ public static class Program
 
         return rootCommand;
     }
+
+    static Action<ArgumentResult> fileExists =
+        result =>
+        {
+            var file = result.GetValueOrDefault<FileInfo>();
+            if (!file.Exists)
+            {
+                result.AddError($"File does not exist: {file.FullName}");
+            }
+        };
 }
