@@ -84,8 +84,13 @@ public static partial class Word
         CloseHandle(job);
     }
 
-    static dynamic Open(dynamic word, string path) =>
-        word.Documents.Open(path, ReadOnly: true, AddToRecentFiles: false);
+    static dynamic Open(dynamic word, string path)
+    {
+        var doc = word.Documents.Open(path, ReadOnly: true, AddToRecentFiles: false);
+        // Hide document window to prevent flickering while preparing comparison
+        doc.ActiveWindow.Visible = false;
+        return doc;
+    }
 
     static void MinimizeRibbon(dynamic word)
     {
