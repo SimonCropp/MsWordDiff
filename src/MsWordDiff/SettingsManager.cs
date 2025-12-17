@@ -1,6 +1,6 @@
-public class SettingsManager
+public class SettingsManager(string settingsPath)
 {
-    static readonly JsonSerializerOptions jsonOptions = new()
+    static JsonSerializerOptions jsonOptions = new()
     {
         WriteIndented = true
     };
@@ -11,12 +11,7 @@ public class SettingsManager
         "MsWordDiff",
         "settings.json");
 
-    readonly string settingsPath;
-
     public string SettingsPath => settingsPath;
-
-    public SettingsManager(string settingsPath) =>
-        this.settingsPath = settingsPath;
 
     public async Task<Settings> Read()
     {
