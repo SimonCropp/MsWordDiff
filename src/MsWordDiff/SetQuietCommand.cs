@@ -8,8 +8,8 @@ public class SetQuietCommand : ICommand
 
     public async ValueTask ExecuteAsync(IConsole console)
     {
-        var settingsManager = new SettingsManager(SettingsPath);
-        await settingsManager.SetQuietAsync(Value);
+        var settings = new SettingsManager(SettingsPath);
+        await settings.SetQuiet(Value);
 
         await console.Output.WriteLineAsync($"Quiet mode default set to: {Value}");
         await console.Output.WriteLineAsync($"Settings saved to: {SettingsPath}");

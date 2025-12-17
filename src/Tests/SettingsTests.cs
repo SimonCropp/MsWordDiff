@@ -8,7 +8,7 @@ public class SettingsTests
         try
         {
             var settingsManager = new SettingsManager(tempPath);
-            var settings = await settingsManager.ReadAsync();
+            var settings = await settingsManager.Read();
 
             await Assert.That(settings.Quiet).IsFalse();
         }
@@ -31,9 +31,9 @@ public class SettingsTests
             var settingsManager = new SettingsManager(tempPath);
             var settings = new Settings { Quiet = true };
 
-            await settingsManager.WriteAsync(settings);
+            await settingsManager.Write(settings);
 
-            var readSettings = await settingsManager.ReadAsync();
+            var readSettings = await settingsManager.Read();
 
             await Assert.That(readSettings.Quiet).IsTrue();
         }
@@ -56,7 +56,7 @@ public class SettingsTests
             await File.WriteAllTextAsync(tempPath, "{ invalid json }");
 
             var settingsManager = new SettingsManager(tempPath);
-            var settings = await settingsManager.ReadAsync();
+            var settings = await settingsManager.Read();
 
             await Assert.That(settings.Quiet).IsFalse();
         }

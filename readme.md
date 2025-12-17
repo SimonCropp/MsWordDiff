@@ -63,13 +63,13 @@ diffword original.docx modified.docx --quiet
 
 The default behavior of options can be configured using settings commands.
 
-#### View settings file location
+#### View settings
 
 ```
-diffword settings path
+diffword settings
 ```
 
-This displays the path to the settings file. By default, settings are stored in:
+This displays the settings file path and current settings. By default, settings are stored in:
 ```
 %USERPROFILE%\.config\MsWordDiff\settings.json
 ```
@@ -77,7 +77,7 @@ This displays the path to the settings file. By default, settings are stored in:
 #### Configure default Quiet mode
 
 ```
-diffword settings set-quiet <true|false>
+diffword set-quiet <true|false>
 ```
 
 Set the default value for the Quiet option. When set to `true`, the source documents will be hidden by default.
@@ -85,8 +85,8 @@ Set the default value for the Quiet option. When set to `true`, the source docum
 Examples:
 
 ```
-diffword settings set-quiet true
-diffword settings set-quiet false
+diffword set-quiet true
+diffword set-quiet false
 ```
 
 Note: Command-line options always override settings file values.

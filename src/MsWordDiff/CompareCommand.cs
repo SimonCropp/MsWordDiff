@@ -7,7 +7,7 @@ public class CompareCommand : ICommand
     [CommandParameter(1, Name = "path2", Description = "Path to the second Word document")]
     public required FileInfo Path2 { get; init; }
 
-    [CommandOption("quiet", Description = "Hide source documents in the comparison view. Default can be set via 'settings set-quiet' command")]
+    [CommandOption("quiet", Description = "Hide source documents in the comparison view. Default can be set via 'set-quiet' command")]
     public bool? Quiet { get; init; }
 
     public string SettingsPath { get; init; } = SettingsManager.DefaultSettingsPath;
@@ -25,7 +25,7 @@ public class CompareCommand : ICommand
         }
 
         var settingsManager = new SettingsManager(SettingsPath);
-        var settings = await settingsManager.ReadAsync();
+        var settings = await settingsManager.Read();
 
         var quiet = Quiet ?? settings.Quiet;
 

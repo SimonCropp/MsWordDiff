@@ -41,14 +41,17 @@ The codebase is minimal with the following components:
   - Reads settings asynchronously and merges with command-line options (CLI overrides settings)
   - Invokes `Word.Launch()` with merged configuration
 
-- **SettingsCommand.cs** - Settings management commands:
-  - `settings set-quiet` - Configure default Quiet mode value
-  - `settings path` - Display settings file location
+- **SettingsCommand.cs** - View settings command:
+  - `settings` - Display settings file path and current settings
+
+- **SetQuietCommand.cs** - Configure Quiet mode:
+  - `set-quiet <true|false>` - Set default Quiet mode value
 
 - **Settings.cs** - Settings model with `Quiet` property
 
 - **SettingsManager.cs** - Async settings persistence:
   - Reads/writes JSON settings from `%USERPROFILE%\.config\MsWordDiff\settings.json`
+  - `SetQuiet()` - Update Quiet setting
   - Handles missing/corrupted settings gracefully
   - Configurable settings path for testing
 
