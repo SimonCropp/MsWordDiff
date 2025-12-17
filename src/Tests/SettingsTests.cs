@@ -1,71 +1,52 @@
 public class SettingsTests
 {
     [Test]
+    [Explicit]
+    public Task Setup()
+    {
+        var tempPath = TempFile.Create();
+
+        File.Delete(tempPath);
+        var manager = new SettingsManager(tempPath);
+        return manager.Setup();
+    }
+
+    [Test]
     public async Task ReadNonExistentSettings_ReturnsDefaultSettings()
     {
-        var tempPath = Path.Combine(Path.GetTempPath(), $"msworddiff-test-{Guid.NewGuid()}.json");
+        var tempPath = TempFile.Create();
 
-        try
-        {
-            var settingsManager = new SettingsManager(tempPath);
-            var settings = await settingsManager.Read();
+        var manager = new SettingsManager(tempPath);
+        var settings = await manager.Read();
 
-            await Assert.That(settings.Quiet).IsFalse();
-        }
-        finally
-        {
-            if (File.Exists(tempPath))
-            {
-                File.Delete(tempPath);
-            }
-        }
+        await Assert.That(settings.Quiet).IsFalse();
     }
 
     [Test]
     public async Task WriteAndReadSettings_PreservesValues()
     {
-        var tempPath = Path.Combine(Path.GetTempPath(), $"msworddiff-test-{Guid.NewGuid()}.json");
+        var tempPath = TempFile.Create();
 
-        try
-        {
-            var settingsManager = new SettingsManager(tempPath);
-            var settings = new Settings { Quiet = true };
+        var manager = new SettingsManager(tempPath);
+        var settings = new Settings {Quiet = true};
 
-            await settingsManager.Write(settings);
+        await manager.Write(settings);
 
-            var readSettings = await settingsManager.Read();
+        var readSettings = await manager.Read();
 
-            await Assert.That(readSettings.Quiet).IsTrue();
-        }
-        finally
-        {
-            if (File.Exists(tempPath))
-            {
-                File.Delete(tempPath);
-            }
-        }
+        await Assert.That(readSettings.Quiet).IsTrue();
     }
 
     [Test]
     public async Task ReadCorruptedSettings_ReturnsDefaultSettings()
     {
-        var tempPath = Path.Combine(Path.GetTempPath(), $"msworddiff-test-{Guid.NewGuid()}.json");
+        var tempPath = TempFile.Create();
 
-        try
-        {
-            await File.WriteAllTextAsync(tempPath, "{ invalid json }");
+        await File.WriteAllTextAsync(tempPath, "{ invalid json }");
 
-            var settingsManager = new SettingsManager(tempPath);
-            var settings = await settingsManager.Read();
+        var manager = new SettingsManager(tempPath);
+        var settings = await manager.Read();
 
-            await Assert.That(settings.Quiet).IsFalse();
-        }
-        finally
-        {
-            if (File.Exists(tempPath))
-            {
-                File.Delete(tempPath);
-            }
-        }
+        await Assert.That(settings.Quiet).IsFalse();
     }
 }

@@ -7,7 +7,10 @@ public static class Program
     {
         Logging.Init();
 
-        var builder = CreateBuilder();
+        await using var services = ServiceProvider(null);
+        var settingsManager = services.GetRequiredService<SettingsManager>();
+        await settingsManager.Setup();
+        var builder = CreateBuilder(services);
         return await builder
             .Build()
             .RunAsync(args);
@@ -15,20 +18,34 @@ public static class Program
 
     public static CliApplicationBuilder CreateBuilder(string? settingsPath = null)
     {
-        var services = new ServiceCollection();
-        services.AddSingleton(new SettingsManager(settingsPath ?? SettingsManager.DefaultSettingsPath));
+        var services = ServiceProvider(settingsPath);
+        return CreateBuilder(services);
+    }
 
+    static ServiceProvider ServiceProvider(string? settingsPath)
+    {
+        var settingsManager = new SettingsManager(settingsPath ?? SettingsManager.DefaultSettingsPath);
+        var services = new ServiceCollection();
+        services.AddSingleton(settingsManager);
+
+        foreach (var type in commands)
+        {
+            services.AddSingleton(type);
+        }
+
+        return services.BuildServiceProvider();
+    }
+
+    static CliApplicationBuilder CreateBuilder(ServiceProvider serviceProvider)
+    {
         var builder = new CliApplicationBuilder();
         foreach (var type in commands)
         {
             builder.AddCommand(type);
-            services.AddSingleton(type);
         }
-
-        var serviceProvider = services.BuildServiceProvider();
-        var typeActivator = new DependencyInjectionTypeActivator(serviceProvider);
+        var activator = new DependencyInjectionTypeActivator(serviceProvider);
         builder.SetExecutableName("diffword");
-        builder.UseTypeActivator(typeActivator);
+        builder.UseTypeActivator(activator);
         return builder;
     }
 }

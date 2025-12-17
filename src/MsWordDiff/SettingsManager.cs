@@ -50,4 +50,31 @@ public class SettingsManager(string settingsPath)
         settings.Quiet = value;
         await Write(settings);
     }
+
+    public async Task Setup()
+    {
+        if (File.Exists(settingsPath))
+        {
+            return;
+        }
+
+        await File.WriteAllTextAsync(settingsPath, "{}");
+        var result = MessageBox.Show(
+            """
+            Threre are two UX modes. Standard and Quiet.
+            
+            Standard shows the comparsion, both documents being compared, and the list of differencs.
+            
+            Quiet shows on the comparison.
+            
+            Should Quiet be used?
+            
+            Note: This can be changed later using the set-quiet command line option.
+            """,
+            "Standard or Quiet UX?",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question);
+        var quiet = result == DialogResult.Yes;
+        await SetQuiet(quiet);
+    }
 }
