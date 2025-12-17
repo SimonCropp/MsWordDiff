@@ -61,6 +61,8 @@ public static partial class Word
 
         ApplyQuiet(quiet, word);
 
+        HideNavigationPane(word);
+
         MinimizeRibbon(word);
 
         // Get process from Word's window handle and assign to job
@@ -102,6 +104,9 @@ public static partial class Word
         doc.ActiveWindow.Visible = false;
         return doc;
     }
+
+    static void HideNavigationPane(dynamic word) =>
+        word.ActiveWindow.DocumentMap = false;
 
     static void MinimizeRibbon(dynamic word)
     {
