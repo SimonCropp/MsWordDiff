@@ -144,16 +144,16 @@ public static partial class Word
 
     static dynamic RefreshComparison(dynamic word, dynamic oldCompare, string path1, string path2, bool quiet)
     {
+        dynamic? newCompare = null;
         try
         {
             var viewState = SaveViewState(word.ActiveWindow);
 
+            // Create new comparison first before releasing old one
+            newCompare = CreateComparison(word, path1, path2);
+
+            // Only close and release old compare after new one is successfully created
             word.ActiveDocument.Close(SaveChanges: false);
-
-            // Release the old comparison COM object
-            Marshal.ReleaseComObject(oldCompare);
-
-            var newCompare = CreateComparison(word, path1, path2);
 
             if (!quiet)
             {
@@ -164,12 +164,18 @@ public static partial class Word
 
             Log.Information("Comparison refreshed");
 
+            Marshal.ReleaseComObject(oldCompare);
             return newCompare;
         }
         catch (Exception ex)
         {
+            if (newCompare != null)
+            {
+                Marshal.ReleaseComObject(newCompare);
+            }
+
             Log.Warning(ex, "Failed to refresh comparison");
-            // Return old compare if refresh fails
+            // Return old compare if refresh fails (safe since we haven't released it yet)
             return oldCompare;
         }
     }

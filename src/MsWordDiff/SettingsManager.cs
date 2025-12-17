@@ -1,22 +1,18 @@
-public class SettingsManager
+public class SettingsManager(string settingsPath)
 {
     static readonly JsonSerializerOptions jsonOptions = new()
     {
         WriteIndented = true
     };
 
-    public static string DefaultSettingsPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        ".config",
-        "MsWordDiff",
-        "settings.json");
-
-    readonly string settingsPath;
+    public static string DefaultSettingsPath { get; } =
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".config",
+            "MsWordDiff",
+            "settings.json");
 
     public string SettingsPath => settingsPath;
-
-    public SettingsManager(string settingsPath) =>
-        this.settingsPath = settingsPath;
 
     public async Task<Settings> Read()
     {
