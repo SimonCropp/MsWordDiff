@@ -50,7 +50,7 @@ public static partial class Word
 
         if (watch)
         {
-            RunWithFileWatching(word, path1, path2, quiet, process);
+            compare = RunWithFileWatching(word, compare, path1, path2, quiet, process);
         }
         else
         {
@@ -122,7 +122,7 @@ public static partial class Word
         window.VerticalPercentScrolled = state.ScrollTop;
     }
 
-    static void RunWithFileWatching(dynamic word, string path1, string path2, bool quiet, Process process)
+    static dynamic RunWithFileWatching(dynamic word, dynamic currentCompare, string path1, string path2, bool quiet, Process process)
     {
         using var fileWatcher = new FileWatcherManager(path1, path2, () =>
         {
@@ -134,19 +134,24 @@ public static partial class Word
             if (refreshRequested)
             {
                 refreshRequested = false;
-                RefreshComparison(word, path1, path2, quiet);
+                currentCompare = RefreshComparison(word, currentCompare, path1, path2, quiet);
             }
             Thread.Sleep(100);
         }
+
+        return currentCompare;
     }
 
-    static void RefreshComparison(dynamic word, string path1, string path2, bool quiet)
+    static dynamic RefreshComparison(dynamic word, dynamic oldCompare, string path1, string path2, bool quiet)
     {
         try
         {
             var viewState = SaveViewState(word.ActiveWindow);
 
             word.ActiveDocument.Close(SaveChanges: false);
+
+            // Release the old comparison COM object
+            Marshal.ReleaseComObject(oldCompare);
 
             var newCompare = CreateComparison(word, path1, path2);
 
@@ -158,10 +163,14 @@ public static partial class Word
             RestoreViewState(word.ActiveWindow, viewState);
 
             Log.Information("Comparison refreshed");
+
+            return newCompare;
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "Failed to refresh comparison");
+            // Return old compare if refresh fails
+            return oldCompare;
         }
     }
 
