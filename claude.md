@@ -34,10 +34,18 @@ The codebase is minimal with the following components:
   - Creates Windows Job Object to terminate Word when parent process exits
   - Configures Word window (minimizes ribbon, optionally shows source documents and revision pane)
   - Accepts `quiet` parameter to control source documents visibility
+  - Accepts `watch` parameter to enable file monitoring and auto-refresh
+  - File watching features:
+    - `FileWatcherManager` class monitors both source files using FileSystemWatcher
+    - 500ms debounce to avoid excessive refreshes during save operations
+    - `RefreshComparison()` regenerates comparison while preserving scroll position and zoom
+    - Threading-safe flag-based communication between file watcher and STA COM thread
+    - Error handling for file access issues and COM failures
 
 - **CompareCommand.cs** - Main CLI command using CliFx:
   - Validates document paths
   - Supports `--quiet` option to hide source documents
+  - Supports `--watch` option to enable file monitoring
   - Reads settings asynchronously and merges with command-line options (CLI overrides settings)
   - Invokes `Word.Launch()` with merged configuration
 

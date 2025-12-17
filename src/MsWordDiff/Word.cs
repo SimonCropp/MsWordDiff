@@ -1,6 +1,8 @@
 public static partial class Word
 {
-    public static void Launch(string path1, string path2, bool quiet = false)
+    static volatile bool refreshRequested;
+
+    public static void Launch(string path1, string path2, bool quiet = false, bool watch = false)
     {
         var wordType = Type.GetTypeFromProgID("Word.Application");
         if (wordType == null)
@@ -24,6 +26,44 @@ public static partial class Word
         // WdAlertLevel.wdAlertsNone = 0
         word.DisplayAlerts = 0;
 
+        var compare = CreateComparison(word, path1, path2);
+
+        word.Visible = true;
+
+        if (!quiet)
+        {
+            // WdShowSourceDocuments.wdShowSourceDocumentsBoth = 3
+            // Shows the original and revised documents alongside the comparison
+            word.ActiveWindow.ShowSourceDocuments = 3;
+        }
+
+        MinimizeRibbon(word);
+
+        // Get process from Word's window handle and assign to job
+        var hwnd = (IntPtr)word.ActiveWindow.Hwnd;
+        GetWindowThreadProcessId(hwnd, out var processId);
+        using var process = Process.GetProcessById(processId);
+        AssignProcessToJobObject(job, process.Handle);
+
+        // Bring Word to the foreground
+        SetForegroundWindow(hwnd);
+
+        if (watch)
+        {
+            RunWithFileWatching(word, path1, path2, quiet, process);
+        }
+        else
+        {
+            process.WaitForExit();
+        }
+
+        Marshal.ReleaseComObject(compare);
+        Marshal.ReleaseComObject(word);
+        CloseHandle(job);
+    }
+
+    static dynamic CreateComparison(dynamic word, string path1, string path2)
+    {
         var doc1 = Open(word, path1);
         var doc2 = Open(word, path2);
 
@@ -57,35 +97,128 @@ public static partial class Word
         compare.ShowSpellingErrors = false;
         compare.ShowGrammaticalErrors = false;
 
-        word.Visible = true;
-
-        if (!quiet)
-        {
-            // WdShowSourceDocuments.wdShowSourceDocumentsBoth = 3
-            // Shows the original and revised documents alongside the comparison
-            word.ActiveWindow.ShowSourceDocuments = 3;
-        }
-
-        MinimizeRibbon(word);
-
-        // Get process from Word's window handle and assign to job
-        var hwnd = (IntPtr)word.ActiveWindow.Hwnd;
-        GetWindowThreadProcessId(hwnd, out var processId);
-        using var process = Process.GetProcessById(processId);
-        AssignProcessToJobObject(job, process.Handle);
-
-        // Bring Word to the foreground
-        SetForegroundWindow(hwnd);
-
-        process.WaitForExit();
-
-        Marshal.ReleaseComObject(compare);
-        Marshal.ReleaseComObject(word);
-        CloseHandle(job);
+        return compare;
     }
 
     static dynamic Open(dynamic word, string path) =>
         word.Documents.Open(path, ReadOnly: true, AddToRecentFiles: false);
+
+    struct ViewState
+    {
+        public int ScrollTop;
+        public int ZoomPercentage;
+    }
+
+    static ViewState SaveViewState(dynamic window) =>
+        new()
+        {
+            ScrollTop = window.VerticalPercentScrolled,
+            ZoomPercentage = window.View.Zoom.Percentage
+        };
+
+    static void RestoreViewState(dynamic window, ViewState state)
+    {
+        window.View.Zoom.Percentage = state.ZoomPercentage;
+        window.VerticalPercentScrolled = state.ScrollTop;
+    }
+
+    static void RunWithFileWatching(dynamic word, string path1, string path2, bool quiet, Process process)
+    {
+        using var fileWatcher = new FileWatcherManager(path1, path2, () =>
+        {
+            refreshRequested = true;
+        });
+
+        while (!process.HasExited)
+        {
+            if (refreshRequested)
+            {
+                refreshRequested = false;
+                RefreshComparison(word, path1, path2, quiet);
+            }
+            Thread.Sleep(100);
+        }
+    }
+
+    static void RefreshComparison(dynamic word, string path1, string path2, bool quiet)
+    {
+        try
+        {
+            var viewState = SaveViewState(word.ActiveWindow);
+
+            word.ActiveDocument.Close(SaveChanges: false);
+
+            var newCompare = CreateComparison(word, path1, path2);
+
+            if (!quiet)
+            {
+                word.ActiveWindow.ShowSourceDocuments = 3;
+            }
+
+            RestoreViewState(word.ActiveWindow, viewState);
+
+            Log.Information("Comparison refreshed");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to refresh comparison");
+        }
+    }
+
+    class FileWatcherManager : IDisposable
+    {
+        readonly FileSystemWatcher watcher1;
+        readonly FileSystemWatcher watcher2;
+        readonly System.Timers.Timer debounceTimer;
+        readonly Action onChanged;
+
+        public FileWatcherManager(string path1, string path2, Action onChanged)
+        {
+            this.onChanged = onChanged;
+
+            watcher1 = CreateWatcher(path1);
+            watcher2 = CreateWatcher(path2);
+
+            debounceTimer = new System.Timers.Timer(500)
+            {
+                AutoReset = false
+            };
+            debounceTimer.Elapsed += (s, e) => onChanged();
+        }
+
+        FileSystemWatcher CreateWatcher(string filePath)
+        {
+            var directory = Path.GetDirectoryName(filePath);
+            if (directory == null)
+            {
+                throw new InvalidOperationException($"Could not determine directory for {filePath}");
+            }
+
+            var fileName = Path.GetFileName(filePath);
+
+            var watcher = new FileSystemWatcher(directory, fileName)
+            {
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
+                EnableRaisingEvents = true
+            };
+
+            watcher.Changed += OnFileChanged;
+            return watcher;
+        }
+
+        void OnFileChanged(object sender, FileSystemEventArgs e)
+        {
+            debounceTimer.Stop();
+            debounceTimer.Start();
+        }
+
+        public void Dispose()
+        {
+            watcher1?.Dispose();
+            watcher2?.Dispose();
+            debounceTimer?.Dispose();
+        }
+    }
 
     static void MinimizeRibbon(dynamic word)
     {

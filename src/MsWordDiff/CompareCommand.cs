@@ -10,6 +10,9 @@ public class CompareCommand(SettingsManager settingsManager) : ICommand
     [CommandOption("quiet", Description = "Hide source documents in the comparison view. Default can be set via 'set-quiet' command")]
     public bool? Quiet { get; init; }
 
+    [CommandOption("watch", Description = "Watch source files and auto-refresh comparison when they change")]
+    public bool Watch { get; init; }
+
     public async ValueTask ExecuteAsync(IConsole console)
     {
         if (!Path1.Exists)
@@ -28,7 +31,7 @@ public class CompareCommand(SettingsManager settingsManager) : ICommand
 
         try
         {
-            Word.Launch(Path1.FullName, Path2.FullName, quiet);
+            Word.Launch(Path1.FullName, Path2.FullName, quiet, Watch);
         }
         catch (Exception exception)
         {

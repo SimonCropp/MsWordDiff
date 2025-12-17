@@ -30,7 +30,7 @@ https://nuget.org/packages/MsWordDiff/
 ## Usage
 
 ```
-diffword <path1> <path2> [--quiet]
+diffword <path1> <path2> [--quiet] [--watch]
 ```
 
 Where `<path1>` and `<path2>` are paths to the Word documents to compare.
@@ -56,6 +56,30 @@ Example:
 
 ```
 diffword original.docx modified.docx --quiet
+```
+
+#### --watch
+
+Automatically refresh the comparison when source files change.
+
+Example:
+
+```
+diffword original.docx modified.docx --watch
+```
+
+When enabled:
+- Monitors both source files for changes
+- Refreshes the comparison 500ms after the last detected change
+- Preserves scroll position and zoom level
+- Any edits to the comparison document will be discarded on refresh
+
+Note: The comparison window must remain open for file watching to work.
+
+Options can be combined:
+
+```
+diffword original.docx modified.docx --watch --quiet
 ```
 
 

@@ -15,6 +15,7 @@ PARAMETERS
 
 OPTIONS
   --quiet           Hide source documents in the comparison view. Default can be set via 'set-quiet' command 
+  --watch           Watch source files and auto-refresh comparison when they change Default: "False".
   -h|--help         Shows help text. 
   --version         Shows version information. 
 
