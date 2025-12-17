@@ -1,6 +1,6 @@
 public static partial class Word
 {
-    public static void Launch(string path1, string path2)
+    public static void Launch(string path1, string path2, bool quiet = false)
     {
         var wordType = Type.GetTypeFromProgID("Word.Application");
         if (wordType == null)
@@ -59,9 +59,12 @@ public static partial class Word
 
         word.Visible = true;
 
-        // WdShowSourceDocuments.wdShowSourceDocumentsBoth = 3
-        // Shows the original and revised documents alongside the comparison
-        word.ActiveWindow.ShowSourceDocuments = 3;
+        if (!quiet)
+        {
+            // WdShowSourceDocuments.wdShowSourceDocumentsBoth = 3
+            // Shows the original and revised documents alongside the comparison
+            word.ActiveWindow.ShowSourceDocuments = 3;
+        }
 
         MinimizeRibbon(word);
 

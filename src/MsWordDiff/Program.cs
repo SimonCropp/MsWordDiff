@@ -4,9 +4,17 @@ public static class Program
     {
         Logging.Init();
 
-        return await new CliApplicationBuilder()
-            .AddCommandsFromThisAssembly()
+        var builder = CreateBuilder();
+        return await builder
             .Build()
             .RunAsync(args);
+    }
+
+    public static CliApplicationBuilder CreateBuilder()
+    {
+        var builder = new CliApplicationBuilder();
+        builder.AddCommandsFromThisAssembly();
+        builder.SetExecutableName("diffword");
+        return builder;
     }
 }

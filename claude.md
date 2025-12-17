@@ -26,15 +26,33 @@ dotnet tool install -g MsWordDiff --add-source ./nugets
 
 ## Architecture
 
-The codebase is minimal with a single main component:
+The codebase is minimal with the following components:
 
 - **Word.cs** - Core functionality using COM interop to automate Microsoft Word:
   - Opens documents read-only via `Word.Application` COM object
   - Uses `CompareDocuments` API to generate comparison view
   - Creates Windows Job Object to terminate Word when parent process exits
-  - Configures Word window (minimizes ribbon, shows source documents and revision pane)
+  - Configures Word window (minimizes ribbon, optionally shows source documents and revision pane)
+  - Accepts `quiet` parameter to control source documents visibility
 
-- **Program.cs** - CLI entry point, validates paths and invokes `Word.Launch()`
+- **CompareCommand.cs** - Main CLI command using CliFx:
+  - Validates document paths
+  - Supports `--quiet` option to hide source documents
+  - Reads settings asynchronously and merges with command-line options (CLI overrides settings)
+  - Invokes `Word.Launch()` with merged configuration
+
+- **SettingsCommand.cs** - Settings management commands:
+  - `settings set-quiet` - Configure default Quiet mode value
+  - `settings path` - Display settings file location
+
+- **Settings.cs** - Settings model with `Quiet` property
+
+- **SettingsManager.cs** - Async settings persistence:
+  - Reads/writes JSON settings from `%USERPROFILE%\.config\MsWordDiff\settings.json`
+  - Handles missing/corrupted settings gracefully
+  - Configurable settings path for testing
+
+- **Program.cs** - CLI entry point using CliFx
 
 - **Logging.cs** - Serilog configuration writing to console and rolling file logs
 

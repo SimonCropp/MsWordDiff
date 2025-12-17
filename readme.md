@@ -30,7 +30,7 @@ https://nuget.org/packages/MsWordDiff/
 ## Usage
 
 ```
-diffword <path1> <path2>
+diffword <path1> <path2> [--quiet]
 ```
 
 Where `<path1>` and `<path2>` are paths to the Word documents to compare.
@@ -44,6 +44,52 @@ diffword original.docx modified.docx
 This will open Microsoft Word with a comparison view showing the differences between the two documents. The tool will wait until Word is closed before exiting.
 
 <img src="/src/diff.png">
+
+
+### Options
+
+#### --quiet
+
+Hide source documents in the comparison view, showing only the comparison document.
+
+Example:
+
+```
+diffword original.docx modified.docx --quiet
+```
+
+
+### Configuration
+
+The default behavior of options can be configured using settings commands.
+
+#### View settings file location
+
+```
+diffword settings path
+```
+
+This displays the path to the settings file. By default, settings are stored in:
+```
+%USERPROFILE%\.config\MsWordDiff\settings.json
+```
+
+#### Configure default Quiet mode
+
+```
+diffword settings set-quiet <true|false>
+```
+
+Set the default value for the Quiet option. When set to `true`, the source documents will be hidden by default.
+
+Examples:
+
+```
+diffword settings set-quiet true
+diffword settings set-quiet false
+```
+
+Note: Command-line options always override settings file values.
 
 
 ## How It Works

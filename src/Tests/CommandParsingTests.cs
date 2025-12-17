@@ -5,8 +5,7 @@ public class CommandParsingTests
     {
         using var console = new FakeInMemoryConsole();
 
-        var app = new CliApplicationBuilder()
-            .AddCommand<CompareCommand>()
+        var app = Program.CreateBuilder()
             .UseConsole(console)
             .Build();
 
@@ -25,8 +24,7 @@ public class CommandParsingTests
     {
         using var console = new FakeInMemoryConsole();
 
-        var app = new CliApplicationBuilder()
-            .AddCommand<CompareCommand>()
+        var app = Program.CreateBuilder()
             .UseConsole(console)
             .Build();
 
@@ -45,8 +43,7 @@ public class CommandParsingTests
     {
         using var console = new FakeInMemoryConsole();
 
-        var app = new CliApplicationBuilder()
-            .AddCommand<CompareCommand>()
+        var app = Program.CreateBuilder()
             .UseConsole(console)
             .Build();
 
@@ -65,8 +62,7 @@ public class CommandParsingTests
     {
         using var console = new FakeInMemoryConsole();
 
-        var app = new CliApplicationBuilder()
-            .AddCommand<CompareCommand>()
+        var app = Program.CreateBuilder()
             .UseConsole(console)
             .Build();
 
