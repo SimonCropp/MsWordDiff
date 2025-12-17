@@ -1,4 +1,4 @@
-﻿Tests v1.0.0
+﻿Tests v0.2.0
 
 USAGE
   dotnet Tests.dll <path1> <path2> [options]

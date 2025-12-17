@@ -15,13 +15,13 @@ public class CompareCommand : ICommand
         if (!Path1.Exists)
         {
             console.Error.WriteLine($"File does not exist: {Path1.FullName}");
-            return ValueTask.FromException(new CommandException("File not found", 1));
+            return ValueTask.CompletedTask;
         }
 
         if (!Path2.Exists)
         {
             console.Error.WriteLine($"File does not exist: {Path2.FullName}");
-            return ValueTask.FromException(new CommandException("File not found", 1));
+            return ValueTask.CompletedTask;
         }
 
         try
