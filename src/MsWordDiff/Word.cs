@@ -59,12 +59,7 @@ public static partial class Word
 
         word.Visible = true;
 
-        if (!quiet)
-        {
-            // WdShowSourceDocuments.wdShowSourceDocumentsBoth = 3
-            // Shows the original and revised documents alongside the comparison
-            word.ActiveWindow.ShowSourceDocuments = 3;
-        }
+        ApplyQuiet(quiet, word);
 
         MinimizeRibbon(word);
 
@@ -82,6 +77,22 @@ public static partial class Word
         Marshal.ReleaseComObject(compare);
         Marshal.ReleaseComObject(word);
         CloseHandle(job);
+    }
+
+    static void ApplyQuiet(bool quiet, dynamic word)
+    {
+        if (quiet)
+        {
+            // WdShowSourceDocuments.wdShowSourceDocumentsNone = 0
+            // Hides the source documents, showing only the comparison
+            word.ActiveWindow.ShowSourceDocuments = 0;
+        }
+        else
+        {
+            // WdShowSourceDocuments.wdShowSourceDocumentsBoth = 3
+            // Shows the original and revised documents alongside the comparison
+            word.ActiveWindow.ShowSourceDocuments = 3;
+        }
     }
 
     static dynamic Open(dynamic word, string path)
