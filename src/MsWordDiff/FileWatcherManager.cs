@@ -1,4 +1,4 @@
-﻿class FileWatcherManager : IDisposable
+﻿public class FileWatcherManager : IDisposable
 {
     FileSystemWatcher watcher1;
     FileSystemWatcher watcher2;
@@ -28,11 +28,15 @@
 
         var watcher = new FileSystemWatcher(directory, fileName)
         {
-            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName,
             EnableRaisingEvents = true
         };
 
+        // Word and many editors don't modify files in place - they create a temp file,
+        // delete the original, and rename the temp. So we need to watch for all these events.
         watcher.Changed += OnFileChanged;
+        watcher.Created += OnFileChanged;
+        watcher.Renamed += OnFileChanged;
         return watcher;
     }
 
