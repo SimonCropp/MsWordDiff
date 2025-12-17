@@ -14,14 +14,12 @@ public class CompareCommand : ICommand
     {
         if (!Path1.Exists)
         {
-            console.Error.WriteLine($"File does not exist: {Path1.FullName}");
-            return ValueTask.CompletedTask;
+            throw new CommandException($"File does not exist: {Path1.FullName}");
         }
 
         if (!Path2.Exists)
         {
-            console.Error.WriteLine($"File does not exist: {Path2.FullName}");
-            return ValueTask.CompletedTask;
+            throw new CommandException($"File does not exist: {Path2.FullName}");
         }
 
         try
@@ -32,7 +30,7 @@ public class CompareCommand : ICommand
         catch (Exception exception)
         {
             Log.Error(exception, "Failed to launch");
-            return ValueTask.FromException(new CommandException("Failed to launch", 1, innerException: exception));
+            throw new CommandException("Failed to launch", 1, innerException: exception);
         }
     }
 }
