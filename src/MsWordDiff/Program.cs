@@ -14,7 +14,11 @@ public static class Program
     {
         var services = new ServiceCollection();
         services.AddSingleton(new SettingsManager(settingsPath ?? SettingsManager.DefaultSettingsPath));
-
+        foreach (var type in typeof(Program).Assembly.GetTypes()
+                     .Where(t => t.IsAssignableTo(typeof(ICommand)) && !t.IsAbstract))
+        {
+            services.AddTransient(type);
+        }
         var serviceProvider = services.BuildServiceProvider();
         var typeActivator = new DependencyInjectionTypeActivator(serviceProvider);
 
