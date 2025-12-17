@@ -26,41 +26,50 @@ public class CommandParsingTests
     }
 
     [Test]
-    public async Task MissingArguments_ReturnsError()
+    public async Task MissingBothArguments_ReturnsErrorWithArgumentNames()
     {
         var wasCalled = false;
+        var errorOutput = new StringWriter();
+        var command = Program.BuildCommand((_, _) => wasCalled = true, errorOutput);
 
-        var command = Program.BuildCommand((_, _) => wasCalled = true);
+        var exitCode = command.Parse([]).Invoke();
 
-        var result = command.Parse([]).Invoke();
-
-        await Assert.That(result).IsNotEqualTo(0);
+        var errors = errorOutput.ToString();
+        await Assert.That(exitCode).IsNotEqualTo(0);
+        await Assert.That(errors).Contains("Required argument missing: <path1>");
+        await Assert.That(errors).Contains("Required argument missing: <path2>");
         await Assert.That(wasCalled).IsFalse();
     }
 
     [Test]
-    public async Task SingleArgument_ReturnsError()
+    public async Task MissingSingleArgument_ReturnsErrorWithArgumentName()
     {
         var wasCalled = false;
+        var errorOutput = new StringWriter();
+        var command = Program.BuildCommand((_, _) => wasCalled = true, errorOutput);
 
-        var command = Program.BuildCommand((_, _) => wasCalled = true);
+        var exitCode = command.Parse([ProjectFiles.input_temp_docx.FullPath]).Invoke();
 
-        var result = command.Parse([ProjectFiles.input_temp_docx.FullPath]).Invoke();
-
-        await Assert.That(result).IsNotEqualTo(0);
+        var errors = errorOutput.ToString();
+        await Assert.That(exitCode).IsNotEqualTo(0);
+        await Assert.That(errors).DoesNotContain("Required argument missing: <path1>");
+        await Assert.That(errors).Contains("Required argument missing: <path2>");
         await Assert.That(wasCalled).IsFalse();
     }
 
     [Test]
-    public async Task NonExistentFile_ReturnsError()
+    public async Task NonExistentFile_ReturnsErrorWithFilePath()
     {
         var wasCalled = false;
+        var errorOutput = new StringWriter();
+        var command = Program.BuildCommand((_, _) => wasCalled = true, errorOutput);
 
-        var command = Program.BuildCommand((_, _) => wasCalled = true);
+        var exitCode = command.Parse(["nonexistent.docx", ProjectFiles.input_target_docx.FullPath]).Invoke();
 
-        var result = command.Parse(["nonexistent.docx", ProjectFiles.input_target_docx.FullPath]).Invoke();
-
-        await Assert.That(result).IsNotEqualTo(0);
+        var errors = errorOutput.ToString();
+        await Assert.That(exitCode).IsNotEqualTo(0);
+        await Assert.That(errors).Contains("File not found:");
+        await Assert.That(errors).Contains("nonexistent.docx");
         await Assert.That(wasCalled).IsFalse();
     }
 
@@ -68,7 +77,6 @@ public class CommandParsingTests
     public async Task HelpOption_ShowsHelp()
     {
         var wasCalled = false;
-
         var command = Program.BuildCommand((_, _) => wasCalled = true);
 
         var result = command.Parse(["--help"]).Invoke();

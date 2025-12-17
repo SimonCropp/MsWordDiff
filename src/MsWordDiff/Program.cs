@@ -4,34 +4,23 @@ public static class Program
     {
         Logging.Init();
         var command = BuildCommand(Word.Launch);
-        var parseResult = command.Parse(args);
-
-        if (parseResult.Errors.Count > 0)
-        {
-            Console.Error.WriteLine("Usage: diffword <path1> <path2>");
-            Console.Error.WriteLine();
-            foreach (var error in parseResult.Errors)
-            {
-                Console.Error.WriteLine(error.Message);
-            }
-            return 1;
-        }
-
-        return parseResult.Invoke();
+        return command.Parse(args).Invoke();
     }
 
-    public static RootCommand BuildCommand(Action<string, string> launchAction)
+    public static RootCommand BuildCommand(Action<string, string> launchAction, TextWriter? errorOutput = null)
     {
-        var path1Argument = new Argument<FileInfo>("path1")
+        errorOutput ??= Console.Error;
+
+        var path1Argument = new Argument<FileInfo?>("path1")
         {
             Description = "Path to the first Word document",
-            Arity = ArgumentArity.ExactlyOne
+            Arity = ArgumentArity.ZeroOrOne
         };
 
-        var path2Argument = new Argument<FileInfo>("path2")
+        var path2Argument = new Argument<FileInfo?>("path2")
         {
             Description = "Path to the second Word document",
-            Arity = ArgumentArity.ExactlyOne
+            Arity = ArgumentArity.ZeroOrOne
         };
 
         var rootCommand = new RootCommand("Compare two Word documents side by side using Microsoft Word");
@@ -40,24 +29,43 @@ public static class Program
 
         rootCommand.SetAction(parseResult =>
         {
-            var path1 = parseResult.GetValue(path1Argument)!;
-            var path2 = parseResult.GetValue(path2Argument)!;
+            var path1 = parseResult.GetValue(path1Argument);
+            var path2 = parseResult.GetValue(path2Argument);
 
-            if (!path1.Exists)
+            var errors = new List<string>();
+
+            if (path1 is null)
             {
-                Console.Error.WriteLine($"File not found: {path1.FullName}");
-                return 1;
+                errors.Add("Required argument missing: <path1>");
+            }
+            else if (!path1.Exists)
+            {
+                errors.Add($"File not found: {path1.FullName}");
             }
 
-            if (!path2.Exists)
+            if (path2 is null)
             {
-                Console.Error.WriteLine($"File not found: {path2.FullName}");
+                errors.Add("Required argument missing: <path2>");
+            }
+            else if (!path2.Exists)
+            {
+                errors.Add($"File not found: {path2.FullName}");
+            }
+
+            if (errors.Count > 0)
+            {
+                errorOutput.WriteLine("Usage: diffword <path1> <path2>");
+                errorOutput.WriteLine();
+                foreach (var error in errors)
+                {
+                    errorOutput.WriteLine(error);
+                }
                 return 1;
             }
 
             try
             {
-                launchAction(path1.FullName, path2.FullName);
+                launchAction(path1!.FullName, path2!.FullName);
                 return 0;
             }
             catch (Exception exception)
