@@ -5,16 +5,9 @@ public class QuietOptionTests
     {
         using var console = new FakeInMemoryConsole();
 
-        var services = new ServiceCollection();
-        services.AddSingleton(new SettingsManager(SettingsManager.DefaultSettingsPath));
-
-        var serviceProvider = services.BuildServiceProvider();
-        var typeActivator = new DependencyInjectionTypeActivator(serviceProvider);
-
-        var app = new CliApplicationBuilder()
-            .AddCommand<CompareCommand>()
+        var app = Program
+            .CreateBuilder()
             .UseConsole(console)
-            .UseTypeActivator(typeActivator)
             .Build();
 
         var exitCode = await app.RunAsync(["--help"]);
@@ -22,7 +15,6 @@ public class QuietOptionTests
         var output = console.ReadOutputString();
 
         await Assert.That(exitCode).IsEqualTo(0);
-        await Assert.That(output).Contains("--quiet");
         await Verify(output);
     }
 
