@@ -25,16 +25,9 @@ public class QuietOptionTests
 
         using var console = new FakeInMemoryConsole();
 
-        var services = new ServiceCollection();
-        services.AddSingleton(new SettingsManager(tempPath));
-
-        var serviceProvider = services.BuildServiceProvider();
-        var typeActivator = new DependencyInjectionTypeActivator(serviceProvider);
-
-        var app = new CliApplicationBuilder()
-            .AddCommand<SetQuietCommand>()
+        var app = Program
+            .CreateBuilder(tempPath)
             .UseConsole(console)
-            .UseTypeActivator(typeActivator)
             .Build();
 
         var exitCode = await app.RunAsync(["set-quiet", "true"]);
@@ -50,16 +43,9 @@ public class QuietOptionTests
     {
         using var console = new FakeInMemoryConsole();
 
-        var services = new ServiceCollection();
-        services.AddSingleton(new SettingsManager(SettingsManager.DefaultSettingsPath));
-
-        var serviceProvider = services.BuildServiceProvider();
-        var typeActivator = new DependencyInjectionTypeActivator(serviceProvider);
-
-        var app = new CliApplicationBuilder()
-            .AddCommand<SettingsPathCommand>()
+        var app = Program
+            .CreateBuilder()
             .UseConsole(console)
-            .UseTypeActivator(typeActivator)
             .Build();
 
         var exitCode = await app.RunAsync(["settings"]);

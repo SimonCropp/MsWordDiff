@@ -1,5 +1,8 @@
 public static class Program
 {
+    static List<Type> commands = typeof(Program).Assembly.GetTypes()
+        .Where(_ => _.IsAssignableTo(typeof(ICommand)) && !_.IsAbstract).ToList();
+
     public static async Task<int> Main(string[] args)
     {
         Logging.Init();
@@ -14,16 +17,16 @@ public static class Program
     {
         var services = new ServiceCollection();
         services.AddSingleton(new SettingsManager(settingsPath ?? SettingsManager.DefaultSettingsPath));
-        foreach (var type in typeof(Program).Assembly.GetTypes()
-                     .Where(t => t.IsAssignableTo(typeof(ICommand)) && !t.IsAbstract))
-        {
-            services.AddTransient(type);
-        }
-        var serviceProvider = services.BuildServiceProvider();
-        var typeActivator = new DependencyInjectionTypeActivator(serviceProvider);
 
         var builder = new CliApplicationBuilder();
-        builder.AddCommandsFromThisAssembly();
+        foreach (var type in commands)
+        {
+            builder.AddCommand(type);
+            services.AddSingleton(type);
+        }
+
+        var serviceProvider = services.BuildServiceProvider();
+        var typeActivator = new DependencyInjectionTypeActivator(serviceProvider);
         builder.SetExecutableName("diffword");
         builder.UseTypeActivator(typeActivator);
         return builder;

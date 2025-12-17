@@ -1,5 +1,4 @@
-﻿Tests v0.2.0
-
+﻿
 USAGE
   diffword <path1> <path2> [options]
   diffword [command] [...]
