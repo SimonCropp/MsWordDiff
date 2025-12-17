@@ -1,73 +1,78 @@
 public class CommandParsingTests
 {
     [Test]
-    public async Task ValidPaths_InvokesLaunchAction()
+    public async Task MissingBothArguments_ReturnsError()
     {
-        var wasCalled = false;
-        string? capturedPath1 = null;
-        string? capturedPath2 = null;
+        using var console = new FakeInMemoryConsole();
 
-        var command = Program.BuildCommand((path1, path2) =>
+        var app = new CliApplicationBuilder()
+            .AddCommand<CompareCommand>()
+            .UseConsole(console)
+            .Build();
+
+        var exitCode = await app.RunAsync([]);
+
+        await Assert.That(exitCode).IsNotEqualTo(0);
+        await Verify(new
         {
-            wasCalled = true;
-            capturedPath1 = path1;
-            capturedPath2 = path2;
+            Output = console.ReadOutputString(),
+            Error = console.ReadErrorString()
         });
-
-        var result = command.Parse([
-            ProjectFiles.input_temp_docx.FullPath,
-            ProjectFiles.input_target_docx.FullPath
-        ]).Invoke();
-
-        await Assert.That(result).IsEqualTo(0);
-        await Assert.That(wasCalled).IsTrue();
-        await Assert.That(capturedPath1).IsEqualTo(ProjectFiles.input_temp_docx.FullPath);
-        await Assert.That(capturedPath2).IsEqualTo(ProjectFiles.input_target_docx.FullPath);
     }
 
     [Test]
-    public async Task MissingBothArguments_ReturnsErrorWithArgumentNames()
+    public async Task MissingSingleArgument_ReturnsError()
     {
-        var command = Program.BuildCommand((_, _) =>
-        {
-        });
+        using var console = new FakeInMemoryConsole();
 
-        var result = command.Parse([]);
-        await Verify(result.Errors.Select(_ => _.Message));
+        var app = new CliApplicationBuilder()
+            .AddCommand<CompareCommand>()
+            .UseConsole(console)
+            .Build();
+
+        var exitCode = await app.RunAsync([ProjectFiles.input_temp_docx.FullPath]);
+
+        await Assert.That(exitCode).IsNotEqualTo(0);
+        await Verify(new
+        {
+            Output = console.ReadOutputString(),
+            Error = console.ReadErrorString()
+        });
     }
 
     [Test]
-    public async Task MissingSingleArgument_ReturnsErrorWithArgumentName()
+    public async Task NonExistentFile_ReturnsError()
     {
-        var command = Program.BuildCommand((_, _) =>
+        using var console = new FakeInMemoryConsole();
+
+        var app = new CliApplicationBuilder()
+            .AddCommand<CompareCommand>()
+            .UseConsole(console)
+            .Build();
+
+        var exitCode = await app.RunAsync(["nonexistent.docx", ProjectFiles.input_target_docx.FullPath]);
+
+        await Assert.That(exitCode).IsNotEqualTo(0);
+        await Verify(new
         {
+            Output = console.ReadOutputString(),
+            Error = console.ReadErrorString()
         });
-
-        var result = command.Parse([ProjectFiles.input_temp_docx.FullPath]);
-        await Verify(result.Errors.Select(_ => _.Message));
-    }
-
-    [Test]
-    public async Task NonExistentFile_ReturnsErrorWithFilePath()
-    {
-        var command = Program.BuildCommand((_, _) =>
-        {
-        });
-
-        var result = command.Parse(["nonexistent.docx", ProjectFiles.input_target_docx.FullPath]);
-
-        await Verify(result.Errors.Select(_ => _.Message));
     }
 
     [Test]
     public async Task HelpOption_ShowsHelp()
     {
-        var wasCalled = false;
-        var command = Program.BuildCommand((_, _) => wasCalled = true);
+        using var console = new FakeInMemoryConsole();
 
-        var result = command.Parse(["--help"]).Invoke();
+        var app = new CliApplicationBuilder()
+            .AddCommand<CompareCommand>()
+            .UseConsole(console)
+            .Build();
 
-        await Assert.That(result).IsEqualTo(0);
-        await Assert.That(wasCalled).IsFalse();
+        var exitCode = await app.RunAsync(["--help"]);
+
+        await Assert.That(exitCode).IsEqualTo(0);
+        await Verify(console.ReadOutputString());
     }
 }

@@ -2,7 +2,6 @@
 <Project>
   <PropertyGroup>
     <Version>0.2.0</Version>
-    <AssemblyVersion>1.0.0</AssemblyVersion>
     <PackageTags>Word, Diff, Compare</PackageTags>
     <Description>A .NET tool that compares two Word documents side by side using Microsoft Word's built-in document comparison feature.</Description>
     <Nullable>enable</Nullable>

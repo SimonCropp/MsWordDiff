@@ -1,4 +1,5 @@
 // Global using directives
 
-global using System.CommandLine;
+global using CliFx;
+global using CliFx.Infrastructure;
 global using ProjectFilesGenerator;

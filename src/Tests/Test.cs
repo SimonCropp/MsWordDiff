@@ -1,4 +1,4 @@
-﻿public class Test
+public class Test
 {
     [Test]
     [Explicit]
@@ -9,9 +9,9 @@
 
     [Test]
     [Explicit]
-    public void LaunchViaProgram() =>
-        Program.Main([
-                ProjectFiles.input_temp_docx.FullPath,
-                ProjectFiles.input_target_docx.FullPath
-            ]);
+    public async Task LaunchViaProgram() =>
+        await Program.Main([
+            ProjectFiles.input_temp_docx.FullPath,
+            ProjectFiles.input_target_docx.FullPath
+        ]);
 }

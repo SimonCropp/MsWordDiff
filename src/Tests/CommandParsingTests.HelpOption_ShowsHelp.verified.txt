@@ -1,0 +1,15 @@
+﻿Tests v1.0.0
+
+USAGE
+  dotnet Tests.dll <path1> <path2> [options]
+
+DESCRIPTION
+  Compare two Word documents side by side using Microsoft Word
+
+PARAMETERS
+* path1             Path to the first Word document 
+* path2             Path to the second Word document 
+
+OPTIONS
+  -h|--help         Shows help text. 
+  --version         Shows version information. 
