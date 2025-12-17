@@ -9,6 +9,14 @@ public class Test
 
     [Test]
     [Explicit]
+    public void LaunchQuiet() =>
+        Word.Launch(
+            ProjectFiles.input_temp_docx.FullPath,
+            ProjectFiles.input_target_docx.FullPath,
+            quiet: true);
+
+    [Test]
+    [Explicit]
     public async Task LaunchViaProgram() =>
         await Program.Main([
             ProjectFiles.input_temp_docx.FullPath,

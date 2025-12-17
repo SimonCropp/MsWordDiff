@@ -1,14 +1,12 @@
 [Command("settings", Description = "Display the settings")]
-public class SettingsPathCommand : ICommand
+public class SettingsPathCommand(SettingsManager settingsManager) : ICommand
 {
-    public string SettingsPath { get; init; } = SettingsManager.DefaultSettingsPath;
-
     public async ValueTask ExecuteAsync(IConsole console)
     {
-        await console.Output.WriteLineAsync(SettingsPath);
-        if (File.Exists(SettingsPath))
+        await console.Output.WriteLineAsync(settingsManager.SettingsPath);
+        if (File.Exists(settingsManager.SettingsPath))
         {
-            await console.Output.WriteLineAsync(await File.ReadAllTextAsync(SettingsPath));
+            await console.Output.WriteLineAsync(await File.ReadAllTextAsync(settingsManager.SettingsPath));
             return;
         }
 

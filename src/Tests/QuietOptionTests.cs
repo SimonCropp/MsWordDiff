@@ -5,9 +5,16 @@ public class QuietOptionTests
     {
         using var console = new FakeInMemoryConsole();
 
+        var services = new ServiceCollection();
+        services.AddSingleton(new SettingsManager(SettingsManager.DefaultSettingsPath));
+
+        var serviceProvider = services.BuildServiceProvider();
+        var typeActivator = new DependencyInjectionTypeActivator(serviceProvider);
+
         var app = new CliApplicationBuilder()
             .AddCommand<CompareCommand>()
             .UseConsole(console)
+            .UseTypeActivator(typeActivator)
             .Build();
 
         var exitCode = await app.RunAsync(["--help"]);
@@ -22,31 +29,28 @@ public class QuietOptionTests
     [Test]
     public async Task SetQuietCommand_UpdatesSettings()
     {
-        var tempPath = Path.Combine(Path.GetTempPath(), $"msworddiff-test-{Guid.NewGuid()}.json");
+        using var tempPath = TempFile.Create();
 
-        try
-        {
-            using var console = new FakeInMemoryConsole();
+        using var console = new FakeInMemoryConsole();
 
-            var app = new CliApplicationBuilder()
-                .AddCommand<SetQuietCommand>()
-                .UseConsole(console)
-                .Build();
+        var services = new ServiceCollection();
+        services.AddSingleton(new SettingsManager(tempPath));
 
-            var exitCode = await app.RunAsync(["set-quiet", "true"]);
+        var serviceProvider = services.BuildServiceProvider();
+        var typeActivator = new DependencyInjectionTypeActivator(serviceProvider);
 
-            await Assert.That(exitCode).IsEqualTo(0);
+        var app = new CliApplicationBuilder()
+            .AddCommand<SetQuietCommand>()
+            .UseConsole(console)
+            .UseTypeActivator(typeActivator)
+            .Build();
 
-            var output = console.ReadOutputString();
-            await Assert.That(output).Contains("Quiet mode default set to: True");
-        }
-        finally
-        {
-            if (File.Exists(tempPath))
-            {
-                File.Delete(tempPath);
-            }
-        }
+        var exitCode = await app.RunAsync(["set-quiet", "true"]);
+
+        await Assert.That(exitCode).IsEqualTo(0);
+
+        var output = console.ReadOutputString();
+        await Assert.That(output).Contains("Quiet mode default set to: True");
     }
 
     [Test]
@@ -54,12 +58,19 @@ public class QuietOptionTests
     {
         using var console = new FakeInMemoryConsole();
 
+        var services = new ServiceCollection();
+        services.AddSingleton(new SettingsManager(SettingsManager.DefaultSettingsPath));
+
+        var serviceProvider = services.BuildServiceProvider();
+        var typeActivator = new DependencyInjectionTypeActivator(serviceProvider);
+
         var app = new CliApplicationBuilder()
             .AddCommand<SettingsPathCommand>()
             .UseConsole(console)
+            .UseTypeActivator(typeActivator)
             .Build();
 
-        var exitCode = await app.RunAsync(["settings", "path"]);
+        var exitCode = await app.RunAsync(["settings"]);
 
         await Assert.That(exitCode).IsEqualTo(0);
 

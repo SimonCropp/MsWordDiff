@@ -1,4 +1,4 @@
-public class SettingsManager(string settingsPath)
+public class SettingsManager
 {
     static readonly JsonSerializerOptions jsonOptions = new()
     {
@@ -11,6 +11,13 @@ public class SettingsManager(string settingsPath)
         "MsWordDiff",
         "settings.json");
 
+    readonly string settingsPath;
+
+    public string SettingsPath => settingsPath;
+
+    public SettingsManager(string settingsPath) =>
+        this.settingsPath = settingsPath;
+
     public async Task<Settings> Read()
     {
         if (!File.Exists(settingsPath))
@@ -18,8 +25,16 @@ public class SettingsManager(string settingsPath)
             return new();
         }
 
-        await using var stream = File.OpenRead(settingsPath);
-        return await JsonSerializer.DeserializeAsync<Settings>(stream) ?? new();
+        try
+        {
+            await using var stream = File.OpenRead(settingsPath);
+            return await JsonSerializer.DeserializeAsync<Settings>(stream) ?? new();
+        }
+        catch (Exception exception)
+        {
+            Log.Warning(exception, "Failed to read settings from {Path}", settingsPath);
+            return new();
+        }
     }
 
     public async Task Write(Settings settings)

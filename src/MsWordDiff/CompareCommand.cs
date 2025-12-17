@@ -1,5 +1,5 @@
 [Command(Description = "Compare two Word documents side by side using Microsoft Word")]
-public class CompareCommand : ICommand
+public class CompareCommand(SettingsManager settingsManager) : ICommand
 {
     [CommandParameter(0, Name = "path1", Description = "Path to the first Word document")]
     public required FileInfo Path1 { get; init; }
@@ -9,8 +9,6 @@ public class CompareCommand : ICommand
 
     [CommandOption("quiet", Description = "Hide source documents in the comparison view. Default can be set via 'set-quiet' command")]
     public bool? Quiet { get; init; }
-
-    public string SettingsPath { get; init; } = SettingsManager.DefaultSettingsPath;
 
     public async ValueTask ExecuteAsync(IConsole console)
     {
@@ -24,7 +22,6 @@ public class CompareCommand : ICommand
             throw new CommandException($"File does not exist: {Path2.FullName}");
         }
 
-        var settingsManager = new SettingsManager(SettingsPath);
         var settings = await settingsManager.Read();
 
         var quiet = Quiet ?? settings.Quiet;
