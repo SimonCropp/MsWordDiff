@@ -64,40 +64,62 @@ public static partial class Word
 
     static dynamic CreateComparison(dynamic word, string path1, string path2)
     {
-        var doc1 = Open(word, path1);
-        var doc2 = Open(word, path2);
+        // Create temporary copies to avoid interfering with files open in other Word instances
+        var temp1 = Path.Combine(Path.GetTempPath(), $"diffword-{Guid.NewGuid()}{Path.GetExtension(path1)}");
+        var temp2 = Path.Combine(Path.GetTempPath(), $"diffword-{Guid.NewGuid()}{Path.GetExtension(path2)}");
 
-        // WdCompareDestination.wdCompareDestinationNew = 2
-        // WdGranularity.wdGranularityWordLevel = 1
-        var compare = word.CompareDocuments(
-            doc1,
-            doc2,
-            Destination: 2,
-            Granularity: 1,
-            CompareFormatting: true,
-            CompareCaseChanges: true,
-            CompareWhitespace: true,
-            CompareTables: true,
-            CompareHeaders: true,
-            CompareFootnotes: true,
-            CompareTextboxes: true,
-            CompareFields: true,
-            CompareComments: true,
-            CompareMoves: true,
-            RevisedAuthor: "",
-            IgnoreAllComparisonWarnings: true);
+        try
+        {
+            File.Copy(path1, temp1, overwrite: true);
+            File.Copy(path2, temp2, overwrite: true);
 
-        doc1.Close(SaveChanges: false);
-        doc2.Close(SaveChanges: false);
+            var doc1 = Open(word, temp1);
+            var doc2 = Open(word, temp2);
 
-        // Mark as saved so Word won't prompt to save on close
-        compare.Saved = true;
+            // WdCompareDestination.wdCompareDestinationNew = 2
+            // WdGranularity.wdGranularityWordLevel = 1
+            var compare = word.CompareDocuments(
+                doc1,
+                doc2,
+                Destination: 2,
+                Granularity: 1,
+                CompareFormatting: true,
+                CompareCaseChanges: true,
+                CompareWhitespace: true,
+                CompareTables: true,
+                CompareHeaders: true,
+                CompareFootnotes: true,
+                CompareTextboxes: true,
+                CompareFields: true,
+                CompareComments: true,
+                CompareMoves: true,
+                RevisedAuthor: "",
+                IgnoreAllComparisonWarnings: true);
 
-        compare.AutoSaveOn = false;
-        compare.ShowSpellingErrors = false;
-        compare.ShowGrammaticalErrors = false;
+            doc1.Close(SaveChanges: false);
+            doc2.Close(SaveChanges: false);
 
-        return compare;
+            // Mark as saved so Word won't prompt to save on close
+            compare.Saved = true;
+
+            compare.AutoSaveOn = false;
+            compare.ShowSpellingErrors = false;
+            compare.ShowGrammaticalErrors = false;
+
+            return compare;
+        }
+        finally
+        {
+            // Clean up temporary files
+            if (File.Exists(temp1))
+            {
+                try { File.Delete(temp1); } catch { /* Ignore cleanup errors */ }
+            }
+            if (File.Exists(temp2))
+            {
+                try { File.Delete(temp2); } catch { /* Ignore cleanup errors */ }
+            }
+        }
     }
 
     static dynamic Open(dynamic word, string path) =>
