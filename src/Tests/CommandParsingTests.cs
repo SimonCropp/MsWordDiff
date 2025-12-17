@@ -14,10 +14,10 @@ public class CommandParsingTests
             capturedPath2 = path2;
         });
 
-        var result = command.Invoke([
+        var result = command.Parse([
             ProjectFiles.input_temp_docx.FullPath,
             ProjectFiles.input_target_docx.FullPath
-        ]);
+        ]).Invoke();
 
         await Assert.That(result).IsEqualTo(0);
         await Assert.That(wasCalled).IsTrue();
@@ -32,7 +32,7 @@ public class CommandParsingTests
 
         var command = Program.BuildCommand((_, _) => wasCalled = true);
 
-        var result = command.Invoke([]);
+        var result = command.Parse([]).Invoke();
 
         await Assert.That(result).IsNotEqualTo(0);
         await Assert.That(wasCalled).IsFalse();
@@ -45,7 +45,7 @@ public class CommandParsingTests
 
         var command = Program.BuildCommand((_, _) => wasCalled = true);
 
-        var result = command.Invoke([ProjectFiles.input_temp_docx.FullPath]);
+        var result = command.Parse([ProjectFiles.input_temp_docx.FullPath]).Invoke();
 
         await Assert.That(result).IsNotEqualTo(0);
         await Assert.That(wasCalled).IsFalse();
@@ -58,7 +58,7 @@ public class CommandParsingTests
 
         var command = Program.BuildCommand((_, _) => wasCalled = true);
 
-        var result = command.Invoke(["nonexistent.docx", ProjectFiles.input_target_docx.FullPath]);
+        var result = command.Parse(["nonexistent.docx", ProjectFiles.input_target_docx.FullPath]).Invoke();
 
         await Assert.That(result).IsNotEqualTo(0);
         await Assert.That(wasCalled).IsFalse();
@@ -71,7 +71,7 @@ public class CommandParsingTests
 
         var command = Program.BuildCommand((_, _) => wasCalled = true);
 
-        var result = command.Invoke(["--help"]);
+        var result = command.Parse(["--help"]).Invoke();
 
         await Assert.That(result).IsEqualTo(0);
         await Assert.That(wasCalled).IsFalse();
