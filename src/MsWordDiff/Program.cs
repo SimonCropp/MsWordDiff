@@ -4,7 +4,34 @@ public static class Program
     {
         Logging.Init();
         var command = BuildCommand(Word.Launch);
-        return command.Parse(args).Invoke();
+        var parseResult = command.Parse(args);
+
+        if (parseResult.Errors.Count > 0)
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine("Usage: diffword <path1> <path2>");
+            builder.AppendLine();
+            foreach (var error in parseResult.Errors)
+            {
+                // Improve generic "Required argument missing" messages
+                var message = error.Message;
+                if (message.Contains("Required argument missing"))
+                {
+                    // Extract argument name from SymbolResult if available
+                    if (error.SymbolResult is ArgumentResult argResult)
+                    {
+                        message = $"Required argument missing: <{argResult.Argument.Name}>";
+                    }
+                }
+
+                builder.AppendLine(message);
+            }
+            Log.Error("Failed to launch: {result}", builder.ToString());
+
+            return 1;
+        }
+
+        return parseResult.Invoke();
     }
 
     public static RootCommand BuildCommand(Action<string, string> launchAction)
