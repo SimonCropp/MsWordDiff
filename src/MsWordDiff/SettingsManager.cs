@@ -1,5 +1,18 @@
-public class SettingsManager(string settingsPath)
+public class SettingsManager
 {
+    string settingsPath;
+
+    public SettingsManager(string settingsPath)
+    {
+        var directory = Path.GetDirectoryName(settingsPath);
+        if (directory != null)
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        this.settingsPath = settingsPath;
+    }
+
     static JsonSerializerOptions jsonOptions = new()
     {
         WriteIndented = true
@@ -34,11 +47,6 @@ public class SettingsManager(string settingsPath)
 
     public async Task Write(Settings settings)
     {
-        var directory = Path.GetDirectoryName(settingsPath);
-        if (directory != null)
-        {
-            Directory.CreateDirectory(directory);
-        }
 
         await using var stream = File.Create(settingsPath);
         await JsonSerializer.SerializeAsync(stream, settings, jsonOptions);
@@ -62,13 +70,13 @@ public class SettingsManager(string settingsPath)
         var result = MessageBox.Show(
             """
             Threre are two UX modes. Standard and Quiet.
-            
+
             Standard shows the comparsion, both documents being compared, and the list of differencs.
-            
+
             Quiet shows on the comparison.
-            
+
             Should Quiet be used?
-            
+
             Note: This can be changed later using the set-quiet command line option.
             """,
             "Standard or Quiet UX?",
