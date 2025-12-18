@@ -62,6 +62,26 @@ diffword original.docx modified.docx --quiet
 <img src="/src/diff-quiet.png">
 
 
+##### Showing Original and Revised Panes in Quiet Mode
+
+When using `--quiet` mode, the original and revised document panes are initially hidden. They can be shown at any time within Word:
+
+1. Click the **Review** tab in Word's ribbon
+2. In the **Compare** group, click **Compare**
+3. Select **Show Source Documents**
+4. Choose the preferred view:
+   - **Show Both** - Displays both original and revised documents in the right pane
+   - **Show Original** - Shows only the original document
+   - **Show Revised** - Shows only the revised document
+   - **Hide Source Documents** - Returns to quiet mode (comparison only)
+
+When both documents are visible, they scroll in sync with the comparison document for side-by-side review.
+
+**Learn more:**
+- [Compare and merge two versions of a document - Microsoft Support](https://support.microsoft.com/en-us/office/compare-and-merge-two-versions-of-a-document-f5059749-a797-4db7-a8fb-b3b27eb8b87e)
+- [How to Compare Two Microsoft Word Documents](https://seekfast.org/blog/office-software/how-to-compare-two-microsoft-word-documents/)
+
+
 ### On first execution
 
 On first execution the user will be prompted to choose their preferred UX mode (Standard or Quiet).
