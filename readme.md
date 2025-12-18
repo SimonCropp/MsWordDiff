@@ -48,6 +48,7 @@ This will open Microsoft Word with a comparison view showing the differences bet
 
 ### Options
 
+
 #### --quiet
 
 Hide source documents in the comparison view, showing only the comparison document.
@@ -58,10 +59,20 @@ Example:
 diffword original.docx modified.docx --quiet
 ```
 
+<img src="/src/diff-quiet.png">
+
+
+### On first execution
+
+On first execution the user will be prompted to choose their preferred UX mode (Standard or Quiet).
+
+<img src="/src/firstRun.png">
+
 
 ### Configuration
 
 The default behavior of options can be configured using settings commands.
+
 
 #### View settings
 
@@ -69,10 +80,21 @@ The default behavior of options can be configured using settings commands.
 diffword settings
 ```
 
-This displays the settings file path and current settings. By default, settings are stored in:
+This displays the settings file path and current settings.
+
+```
+C:\Users\SimonCropp\.config\MsWordDiff\settings.json
+{
+  "Quiet": true
+}
+```
+
+By default, settings are stored in:
+
 ```
 %USERPROFILE%\.config\MsWordDiff\settings.json
 ```
+
 
 #### Configure default Quiet mode
 
