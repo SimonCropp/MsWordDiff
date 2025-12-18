@@ -8,3 +8,4 @@ obj/
 *.received.*
 nugets/
 .claude/settings.local.json
+src/.claude/settings.local.json
