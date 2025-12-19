@@ -134,6 +134,21 @@ diffword set-quiet false
 Note: Command-line options always override settings file values.
 
 
+## DiffEngine Integration
+
+MsWordDiff is supported by [DiffEngine](https://github.com/VerifyTests/DiffEngine), making it available as a diff tool for [Verify](https://github.com/VerifyTests/Verify) snapshot testing.
+
+When using Verify to test Word document output, DiffEngine can launch MsWordDiff to show differences between expected and actual documents.
+
+To prioritize MsWordDiff as the diff tool:
+
+```cs
+DiffTools.UseOrder(DiffTool.MsWordDiff);
+```
+
+See [DiffEngine Diff Tool documentation](https://github.com/VerifyTests/DiffEngine/blob/main/docs/diff-tool.md#msworddiff) for more details.
+
+
 ## How It Works
 
 The tool uses COM automation to:
