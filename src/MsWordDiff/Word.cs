@@ -8,16 +8,7 @@ public static partial class Word
             throw new("Microsoft Word is not installed");
         }
 
-        // Create a job object that kills child processes when this process exits
-        var job = CreateJobObject(IntPtr.Zero, null);
-        var info = new JOBOBJECT_EXTENDED_LIMIT_INFORMATION
-        {
-            BasicLimitInformation = new()
-            {
-                LimitFlags = jobObjectLimitKillOnJobClose
-            }
-        };
-        SetInformationJobObject(job, jobObjectExtendedLimitInformation, ref info, (uint)Marshal.SizeOf(info));
+        var job = CreateJobToKillChildProcessesWhenThisProcessExits();
 
         dynamic word = Activator.CreateInstance(wordType)!;
 
@@ -66,7 +57,7 @@ public static partial class Word
         MinimizeRibbon(word);
 
         // Get process from Word's window handle and assign to job
-        var hwnd = (IntPtr)word.ActiveWindow.Hwnd;
+        var hwnd = (IntPtr) word.ActiveWindow.Hwnd;
         GetWindowThreadProcessId(hwnd, out var processId);
         using var process = Process.GetProcessById(processId);
         AssignProcessToJobObject(job, process.Handle);
@@ -79,6 +70,22 @@ public static partial class Word
         Marshal.ReleaseComObject(compare);
         Marshal.ReleaseComObject(word);
         CloseHandle(job);
+
+        RestoreRibbon(wordType);
+    }
+
+    static IntPtr CreateJobToKillChildProcessesWhenThisProcessExits()
+    {
+        var job = CreateJobObject(IntPtr.Zero, null);
+        var info = new JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+        {
+            BasicLimitInformation = new()
+            {
+                LimitFlags = jobObjectLimitKillOnJobClose
+            }
+        };
+        SetInformationJobObject(job, jobObjectExtendedLimitInformation, ref info, (uint)Marshal.SizeOf(info));
+        return job;
     }
 
     static void ApplyQuiet(bool quiet, dynamic word)
@@ -113,6 +120,31 @@ public static partial class Word
         if (!word.CommandBars.GetPressedMso("MinimizeRibbon"))
         {
             word.CommandBars.ExecuteMso("MinimizeRibbon");
+        }
+    }
+
+    static void RestoreRibbon(Type wordType)
+    {
+        dynamic word = Activator.CreateInstance(wordType)!;
+        try
+        {
+            word.DisplayAlerts = 0;
+
+            // Must be visible for settings to persist, but minimize to reduce flash
+            // WdWindowState.wdWindowStateMinimize = 2
+            word.WindowState = 2;
+            word.Visible = true;
+
+            if (word.CommandBars.GetPressedMso("MinimizeRibbon"))
+            {
+                word.CommandBars.ExecuteMso("MinimizeRibbon");
+            }
+
+            word.Quit();
+        }
+        finally
+        {
+            Marshal.ReleaseComObject(word);
         }
     }
 
