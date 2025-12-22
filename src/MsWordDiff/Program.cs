@@ -1,7 +1,10 @@
 public static class Program
 {
-    static List<Type> commands = typeof(Program).Assembly.GetTypes()
-        .Where(_ => _.IsAssignableTo(typeof(ICommand)) && !_.IsAbstract).ToList();
+    static List<Type> commands = typeof(Program)
+        .Assembly
+        .GetTypes()
+        .Where(_ => _.IsAssignableTo(typeof(ICommand)) && !_.IsAbstract)
+        .ToList();
 
     public static async Task<int> Main(string[] args)
     {
