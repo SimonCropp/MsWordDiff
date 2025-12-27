@@ -1,6 +1,6 @@
 # <img src="/src/icon.png" height="30px"> MsWordDiff
 
-[![Build status](https://ci.appveyor.com/api/projects/status/sw0q9icdhhtau66m/branch/main?svg=true)](https://ci.appveyor.com/project/SimonCropp/MsWordDiff)
+[![Build status](https://img.shields.io/appveyor/build/SimonCropp/MsWordDiff)](https://ci.appveyor.com/project/SimonCropp/MsWordDiff)
 [![NuGet Status](https://img.shields.io/nuget/v/MsWordDiff.svg?label=MsWordDiff)](https://www.nuget.org/packages/MsWordDiff/)
 
 A .NET tool that compares two Word documents side by side using Microsoft Word's built-in document comparison feature.<!-- singleLineInclude: intro. path: /src/intro.include.md -->
