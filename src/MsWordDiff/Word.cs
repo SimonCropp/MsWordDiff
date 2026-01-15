@@ -15,6 +15,9 @@ public static partial class Word
         // WdAlertLevel.wdAlertsNone = 0
         word.DisplayAlerts = 0;
 
+        // Disable AutoRecover to prevent "serious error" recovery dialogs
+        word.Options.SaveInterval = 0;
+
         var doc1 = Open(word, path1);
         var doc2 = Open(word, path2);
 
