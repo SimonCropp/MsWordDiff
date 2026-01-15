@@ -16,8 +16,39 @@ public static partial class Word
         word.DisplayAlerts = 0;
 
         var doc1 = Open(word, path1);
+
+        // Get process from Word's window handle and assign to job
+        var hwnd = (IntPtr) word.ActiveWindow.Hwnd;
+        GetWindowThreadProcessId(hwnd, out var processId);
+        using var process = Process.GetProcessById(processId);
+        AssignProcessToJobObject(job, process.Handle);
+
         var doc2 = Open(word, path2);
 
+        var compare = LaunchCompare(word, doc1, doc2);
+
+        word.Visible = true;
+
+        ApplyQuiet(quiet, word);
+
+        HideNavigationPane(word);
+
+        MinimizeRibbon(word);
+
+        // Bring Word to the foreground
+        SetForegroundWindow(hwnd);
+
+        process.WaitForExit();
+
+        Marshal.ReleaseComObject(compare);
+        Marshal.ReleaseComObject(word);
+        CloseHandle(job);
+
+        RestoreRibbon(wordType);
+    }
+
+    static dynamic LaunchCompare(dynamic word, dynamic doc1, dynamic doc2)
+    {
         // WdCompareDestination.wdCompareDestinationNew = 2
         // WdGranularity.wdGranularityWordLevel = 1
         var compare = word.CompareDocuments(
@@ -47,31 +78,7 @@ public static partial class Word
         compare.AutoSaveOn = false;
         compare.ShowSpellingErrors = false;
         compare.ShowGrammaticalErrors = false;
-
-        word.Visible = true;
-
-        ApplyQuiet(quiet, word);
-
-        HideNavigationPane(word);
-
-        MinimizeRibbon(word);
-
-        // Get process from Word's window handle and assign to job
-        var hwnd = (IntPtr) word.ActiveWindow.Hwnd;
-        GetWindowThreadProcessId(hwnd, out var processId);
-        using var process = Process.GetProcessById(processId);
-        AssignProcessToJobObject(job, process.Handle);
-
-        // Bring Word to the foreground
-        SetForegroundWindow(hwnd);
-
-        process.WaitForExit();
-
-        Marshal.ReleaseComObject(compare);
-        Marshal.ReleaseComObject(word);
-        CloseHandle(job);
-
-        RestoreRibbon(wordType);
+        return compare;
     }
 
     static IntPtr CreateJobToKillChildProcessesWhenThisProcessExits()
