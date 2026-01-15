@@ -1,6 +1,8 @@
 ﻿global using System.Diagnostics;
+global using System.Linq;
 global using System.Runtime.InteropServices;
 global using System.Text.Json;
+global using System.Threading;
 global using CliFx;
 global using CliFx.Attributes;
 global using CliFx.Exceptions;

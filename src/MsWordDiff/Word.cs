@@ -9,69 +9,195 @@ public static partial class Word
         }
 
         var job = CreateJobToKillChildProcessesWhenThisProcessExits();
+        dynamic? word = null;
+        dynamic? compare = null;
+        Process? wordProcess = null;
 
-        dynamic word = Activator.CreateInstance(wordType)!;
+        try
+        {
+            // Capture existing Word processes before launching new instance
+            var existingWordPids = Process.GetProcessesByName("WINWORD")
+                .Select(p => p.Id)
+                .ToHashSet();
 
-        // WdAlertLevel.wdAlertsNone = 0
-        word.DisplayAlerts = 0;
+            word = Activator.CreateInstance(wordType)!;
 
-        var doc1 = Open(word, path1);
-        var doc2 = Open(word, path2);
+            // WdAlertLevel.wdAlertsNone = 0
+            word.DisplayAlerts = 0;
 
-        // WdCompareDestination.wdCompareDestinationNew = 2
-        // WdGranularity.wdGranularityWordLevel = 1
-        var compare = word.CompareDocuments(
-            doc1,
-            doc2,
-            Destination: 2,
-            Granularity: 1,
-            CompareFormatting: true,
-            CompareCaseChanges: true,
-            CompareWhitespace: true,
-            CompareTables: true,
-            CompareHeaders: true,
-            CompareFootnotes: true,
-            CompareTextboxes: true,
-            CompareFields: true,
-            CompareComments: true,
-            CompareMoves: true,
-            RevisedAuthor: "",
-            IgnoreAllComparisonWarnings: true);
+            // Find and assign new Word process to job object immediately to prevent zombie processes
+            // if this process is killed before normal cleanup
+            wordProcess = FindNewWordProcess(existingWordPids);
+            if (wordProcess != null)
+            {
+                Log.Information("Found Word process {ProcessId}, assigning to job object", wordProcess.Id);
+                var assigned = AssignProcessToJobObject(job, wordProcess.Handle);
+                Log.Information("Word process assigned to job: {Success}", assigned);
+            }
+            else
+            {
+                Log.Warning("Could not find Word process to assign to job object early");
+            }
 
-        doc1.Close(SaveChanges: false);
-        doc2.Close(SaveChanges: false);
+            var doc1 = Open(word, path1);
+            var doc2 = Open(word, path2);
 
-        // Mark as saved so Word won't prompt to save on close
-        compare.Saved = true;
+            // WdCompareDestination.wdCompareDestinationNew = 2
+            // WdGranularity.wdGranularityWordLevel = 1
+            compare = word.CompareDocuments(
+                doc1,
+                doc2,
+                Destination: 2,
+                Granularity: 1,
+                CompareFormatting: true,
+                CompareCaseChanges: true,
+                CompareWhitespace: true,
+                CompareTables: true,
+                CompareHeaders: true,
+                CompareFootnotes: true,
+                CompareTextboxes: true,
+                CompareFields: true,
+                CompareComments: true,
+                CompareMoves: true,
+                RevisedAuthor: "",
+                IgnoreAllComparisonWarnings: true);
 
-        compare.AutoSaveOn = false;
-        compare.ShowSpellingErrors = false;
-        compare.ShowGrammaticalErrors = false;
+            doc1.Close(SaveChanges: false);
+            doc2.Close(SaveChanges: false);
 
-        word.Visible = true;
+            // Mark as saved so Word won't prompt to save on close
+            compare.Saved = true;
 
-        ApplyQuiet(quiet, word);
+            compare.AutoSaveOn = false;
+            compare.ShowSpellingErrors = false;
+            compare.ShowGrammaticalErrors = false;
 
-        HideNavigationPane(word);
+            word.Visible = true;
 
-        MinimizeRibbon(word);
+            ApplyQuiet(quiet, word);
 
-        // Get process from Word's window handle and assign to job
-        var hwnd = (IntPtr) word.ActiveWindow.Hwnd;
-        GetWindowThreadProcessId(hwnd, out var processId);
-        using var process = Process.GetProcessById(processId);
-        AssignProcessToJobObject(job, process.Handle);
+            HideNavigationPane(word);
 
-        // Bring Word to the foreground
-        SetForegroundWindow(hwnd);
+            MinimizeRibbon(word);
 
-        process.WaitForExit();
+            // Get process from Word's window handle as fallback if not found earlier
+            var hwnd = (IntPtr)word.ActiveWindow.Hwnd;
+            if (wordProcess == null)
+            {
+                GetWindowThreadProcessId(hwnd, out var processId);
+                wordProcess = Process.GetProcessById(processId);
+                AssignProcessToJobObject(job, wordProcess.Handle);
+            }
 
-        Marshal.ReleaseComObject(compare);
-        Marshal.ReleaseComObject(word);
-        CloseHandle(job);
+            // Bring Word to the foreground
+            SetForegroundWindow(hwnd);
 
-        RestoreRibbon(wordType);
+            wordProcess.WaitForExit();
+        }
+        finally
+        {
+            CleanupWord(word, compare, wordProcess, job);
+            RestoreRibbon(wordType);
+        }
+    }
+
+    static Process? FindNewWordProcess(HashSet<int> existingPids)
+    {
+        // Wait for Word process to start (up to 2 seconds)
+        for (var i = 0; i < 20; i++)
+        {
+            try
+            {
+                var newProcesses = Process.GetProcessesByName("WINWORD")
+                    .Where(p => !existingPids.Contains(p.Id))
+                    .ToList();
+
+                if (newProcesses.Count > 0)
+                {
+                    // Return the most recently started process
+                    return newProcesses.OrderByDescending(p =>
+                    {
+                        try
+                        {
+                            return p.StartTime;
+                        }
+                        catch
+                        {
+                            return DateTime.MinValue;
+                        }
+                    }).First();
+                }
+            }
+            catch
+            {
+                // Process may have exited or access denied
+            }
+
+            Thread.Sleep(100);
+        }
+
+        return null;
+    }
+
+    static void CleanupWord(dynamic? word, dynamic? compare, Process? wordProcess, IntPtr job)
+    {
+        // Release COM objects
+        try
+        {
+            if (compare != null)
+            {
+                Marshal.ReleaseComObject(compare);
+            }
+        }
+        catch
+        {
+            // Ignore errors during cleanup
+        }
+
+        try
+        {
+            if (word != null)
+            {
+                try
+                {
+                    // Try to quit Word gracefully
+                    word.Quit(SaveChanges: false);
+                }
+                catch
+                {
+                    // Ignore if Word already closed
+                }
+
+                Marshal.ReleaseComObject(word);
+            }
+        }
+        catch
+        {
+            // Ignore errors during cleanup
+        }
+
+        // Dispose process handle
+        try
+        {
+            wordProcess?.Dispose();
+        }
+        catch
+        {
+            // Ignore errors during cleanup
+        }
+
+        // Close job object
+        try
+        {
+            if (job != IntPtr.Zero)
+            {
+                CloseHandle(job);
+            }
+        }
+        catch
+        {
+            // Ignore errors during cleanup
+        }
     }
 
     static IntPtr CreateJobToKillChildProcessesWhenThisProcessExits()
