@@ -106,7 +106,13 @@ public static partial class Word
 
     static dynamic Open(dynamic word, string path)
     {
-        var doc = word.Documents.Open(path, ReadOnly: true, AddToRecentFiles: false);
+        var doc = word.Documents.Open(
+            path,
+            ConfirmConversions: false,
+            ReadOnly: true,
+            AddToRecentFiles: false,
+            OpenAndRepair: false,
+            NoEncodingDialog: true);
         // Hide document window to prevent flickering while preparing comparison
         doc.ActiveWindow.Visible = false;
         return doc;
