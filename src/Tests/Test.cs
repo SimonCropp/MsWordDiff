@@ -37,7 +37,11 @@ public class Test
 
         // Launch MsWordDiff in a separate process
         // Use the compiled executable directly instead of 'dotnet run' to avoid process hierarchy issues
-        var exePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../MsWordDiff/bin/Debug/net10.0/MsWordDiff.exe"));
+        // Transform test path to MsWordDiff path, preserving configuration (Debug/Release)
+        var exePath = AppContext.BaseDirectory
+            .Replace(@"\Tests\bin\", @"\MsWordDiff\bin\")
+            .Replace(@"\net10.0-windows\", @"\net10.0\")
+            + "MsWordDiff.exe";
 
         Console.WriteLine($"Test diagnostics:");
         Console.WriteLine($"  Exe path: {exePath}");
