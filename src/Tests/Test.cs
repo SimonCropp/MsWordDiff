@@ -31,9 +31,12 @@ public class Test
         // MsWordDiff is forcefully killed (e.g., by DiffEngineTray accepting changes)
 
         // Get existing Word PIDs before test
-        var existingWordPids = Process.GetProcessesByName("WINWORD")
-            .Select(p => p.Id)
-            .ToHashSet();
+        var existingProcesses = Process.GetProcessesByName("WINWORD");
+        var existingWordPids = existingProcesses.Select(p => p.Id).ToHashSet();
+        foreach (var process in existingProcesses)
+        {
+            process.Dispose();
+        }
 
         // Launch MsWordDiff in a separate process
         // Use the compiled executable directly instead of 'dotnet run' to avoid process hierarchy issues
@@ -105,7 +108,8 @@ public class Test
                     break;
                 }
 
-                var newWordProcesses = Process.GetProcessesByName("WINWORD")
+                var allWordProcesses = Process.GetProcessesByName("WINWORD");
+                var newWordProcesses = allWordProcesses
                     .Where(p => !existingWordPids.Contains(p.Id))
                     .ToList();
 
@@ -114,7 +118,23 @@ public class Test
                     wordProcess = newWordProcesses.First();
                     wordStarted = true;
                     Console.WriteLine($"  Word PID: {wordProcess.Id}");
+
+                    // Dispose all processes except the one we're keeping
+                    foreach (var process in allWordProcesses)
+                    {
+                        if (process.Id != wordProcess.Id)
+                        {
+                            process.Dispose();
+                        }
+                    }
+
                     break;
+                }
+
+                // Dispose all if none matched
+                foreach (var process in allWordProcesses)
+                {
+                    process.Dispose();
                 }
 
                 await Task.Delay(100);

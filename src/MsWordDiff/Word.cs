@@ -28,15 +28,15 @@ public static partial class Word
             // Find and assign new Word process to job object immediately to prevent zombie processes
             // if this process is killed before normal cleanup
             wordProcess = FindNewWordProcess(existingWordPids);
-            if (wordProcess != null)
+            if (wordProcess == null)
+            {
+                Log.Warning("Could not find Word process to assign to job object early");
+            }
+            else
             {
                 Log.Information("Found Word process {ProcessId}, assigning to job object", wordProcess.Id);
                 var assigned = AssignProcessToJobObject(job, wordProcess.Handle);
                 Log.Information("Word process assigned to job: {Success}", assigned);
-            }
-            else
-            {
-                Log.Warning("Could not find Word process to assign to job object early");
             }
 
             var doc1 = Open(word, path1);
@@ -108,14 +108,15 @@ public static partial class Word
         {
             try
             {
-                var newProcesses = Process.GetProcessesByName("WINWORD")
+                var allProcesses = Process.GetProcessesByName("WINWORD");
+                var newProcesses = allProcesses
                     .Where(p => !existingPids.Contains(p.Id))
                     .ToList();
 
                 if (newProcesses.Count > 0)
                 {
                     // Return the most recently started process
-                    return newProcesses.OrderByDescending(p =>
+                    var selected = newProcesses.OrderByDescending(p =>
                     {
                         try
                         {
@@ -126,6 +127,23 @@ public static partial class Word
                             return DateTime.MinValue;
                         }
                     }).First();
+
+                    // Dispose all processes except the one we're returning
+                    foreach (var process in allProcesses)
+                    {
+                        if (process.Id != selected.Id)
+                        {
+                            process.Dispose();
+                        }
+                    }
+
+                    return selected;
+                }
+
+                // Dispose all if none matched
+                foreach (var process in allProcesses)
+                {
+                    process.Dispose();
                 }
             }
             catch
