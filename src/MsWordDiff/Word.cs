@@ -50,7 +50,7 @@ public static partial class Word
         RestoreRibbon(wordType);
     }
 
-    static dynamic LaunchCompare(dynamic word, dynamic doc1, dynamic doc2)
+    internal static dynamic LaunchCompare(dynamic word, dynamic doc1, dynamic doc2)
     {
         // WdCompareDestination.wdCompareDestinationNew = 2
         // WdGranularity.wdGranularityWordLevel = 1
@@ -97,7 +97,7 @@ public static partial class Word
         return job;
     }
 
-    static void ApplyQuiet(bool quiet, dynamic word)
+    internal static void ApplyQuiet(bool quiet, dynamic word)
     {
         if (quiet)
         {
@@ -113,7 +113,7 @@ public static partial class Word
         }
     }
 
-    static dynamic Open(dynamic word, string path)
+    internal static dynamic Open(dynamic word, string path)
     {
         var doc = word.Documents.Open(
             path,
