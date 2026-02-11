@@ -72,10 +72,11 @@ public static partial class Word
             RevisedAuthor: "",
             IgnoreAllComparisonWarnings: true);
 
+        doc1.Close(SaveChanges: false);
+        doc2.Close(SaveChanges: false);
+
         // Mark as saved so Word won't prompt to save on close
         compare.Saved = true;
-        doc1.Saved = true;
-        doc2.Saved = true;
 
         compare.AutoSaveOn = false;
         compare.ShowSpellingErrors = false;
