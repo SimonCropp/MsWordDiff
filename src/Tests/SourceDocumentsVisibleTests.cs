@@ -1,11 +1,13 @@
 public class SourceDocumentsVisibleTests
 {
     [Test]
-    [Explicit]
     public async Task SourceDocumentsRemainOpenAfterCompare()
     {
         var wordType = Type.GetTypeFromProgID("Word.Application");
-        await Assert.That(wordType).IsNotNull();
+        if (wordType == null)
+        {
+            Skip.Test("Microsoft Word is not installed");
+        }
 
         dynamic word = Activator.CreateInstance(wordType!)!;
         try
