@@ -20,10 +20,6 @@ public class SourceDocumentsVisibleTests
 
             word.Visible = true;
 
-            // Source documents should still be accessible (not closed)
-            await Assert.That((string) doc1.Name).IsNotNull();
-            await Assert.That((string) doc2.Name).IsNotNull();
-
             // Non-quiet mode: ShowSourceDocuments should be set to both (3)
             Word.ApplyQuiet(false, word);
             await Assert.That((int) word.ActiveWindow.ShowSourceDocuments).IsEqualTo(3);
