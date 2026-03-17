@@ -12,6 +12,6 @@
   </Folder>
   <Project Path="MsWordDiff/MsWordDiff.csproj" />
   <Project Path="MsExcelDiff/MsExcelDiff.csproj" />
-  <Project Path="Tests/Tests.csproj" />
-  <Project Path="ExcelTests/ExcelTests.csproj" />
+  <Project Path="MsWordTests/MsWordTests.csproj" />
+  <Project Path="MsExcelTests/MsExcelTests.csproj" />
 </Solution>
