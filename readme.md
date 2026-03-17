@@ -6,7 +6,7 @@
 
 Tools for comparing Microsoft Office documents.<!-- singleLineInclude: intro. path: /src/intro.include.md -->
 
- * **MsWordDiff** (`diffword`) — Compare two Word documents side by side using Microsoft Word's built-in document comparison feature
+ * **MsWordDiff** (`diffword`) — Compare two Word documents using Microsoft Word's built-in document comparison feature
  * **MsExcelDiff** (`diffexcel`) — Compare two Excel workbooks using Microsoft's Spreadsheet Compare
 
 **See [Milestones](../../milestones?state=closed) for release notes.**
@@ -32,6 +32,7 @@ dotnet tool install -g MsExcelDiff
 
 
 # MsWordDiff
+
 
 ## Usage
 
@@ -166,6 +167,7 @@ The tool uses COM automation to:
 
 
 # MsExcelDiff
+
 
 ## Usage
 
