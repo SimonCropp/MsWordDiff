@@ -47,7 +47,6 @@ public class SettingsManager
 
     public async Task Write(Settings settings)
     {
-
         await using var stream = File.Create(settingsPath);
         await JsonSerializer.SerializeAsync(stream, settings, jsonOptions);
     }

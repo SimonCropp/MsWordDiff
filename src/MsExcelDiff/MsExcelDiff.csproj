@@ -23,4 +23,15 @@
     <PackageReference Include="CliFx" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\MsWordDiff\AssemblyLocation.cs">
+      <Link>AssemblyLocation.cs</Link>
+    </Compile>
+    <Compile Include="..\MsWordDiff\DependencyInjectionTypeActivator.cs">
+      <Link>DependencyInjectionTypeActivator.cs</Link>
+    </Compile>
+    <Compile Include="..\MsWordDiff\Logging.cs">
+      <Link>Logging.cs</Link>
+    </Compile>
+  </ItemGroup>
 </Project>
