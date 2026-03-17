@@ -11,5 +11,7 @@
     <File Path="mdsnippets.json" />
   </Folder>
   <Project Path="MsWordDiff/MsWordDiff.csproj" />
+  <Project Path="MsExcelDiff/MsExcelDiff.csproj" />
   <Project Path="Tests/Tests.csproj" />
+  <Project Path="ExcelTests/ExcelTests.csproj" />
 </Solution>

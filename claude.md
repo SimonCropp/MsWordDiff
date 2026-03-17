@@ -59,6 +59,38 @@ The codebase is minimal with the following components:
 
 - **Logging.cs** - Serilog configuration writing to console and rolling file logs
 
+## MsExcelDiff Project
+
+MsExcelDiff is a separate .NET global tool (`diffexcel`) that compares two Excel workbooks using Microsoft's Spreadsheet Compare (`SPREADSHEETCOMPARE.EXE`), bundled with Office Professional Plus / Microsoft 365 Apps for Enterprise.
+
+### Architecture
+
+- **SpreadsheetCompare.cs** - Core functionality:
+  - Auto-detects SPREADSHEETCOMPARE.EXE in common Office install paths
+  - Writes both file paths to a temp file (one per line) and passes it as argument
+  - Creates Windows Job Object to terminate Spreadsheet Compare when parent exits
+  - Temp file is deleted by the exe on success; cleaned up on failure
+
+- **CompareCommand.cs** - Default CliFx command:
+  - Two positional `FileInfo` parameters for workbook paths
+  - Reads settings for optional custom exe path
+  - Invokes `SpreadsheetCompare.Launch()`
+
+- **Settings.cs** - Settings model with `SpreadsheetComparePath` property
+
+- **SettingsManager.cs** - Async settings persistence at `%USERPROFILE%\.config\MsExcelDiff\settings.json`
+
+- **SetSpreadsheetComparePathCommand.cs** - `set-path` command to configure custom exe location
+
+- **SettingsCommand.cs** - `settings` command to display current settings
+
+### Build & Install
+
+```bash
+dotnet pack src/MsExcelDiff/MsExcelDiff.csproj
+dotnet tool install -g MsExcelDiff --add-source ./nugets
+```
+
 ## Testing
 
 Uses TUnit framework. Tests are marked `[Explicit]` as they require Word to be installed.
