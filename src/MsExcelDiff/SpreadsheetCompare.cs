@@ -1,17 +1,19 @@
 public static partial class SpreadsheetCompare
 {
-    static readonly string[] searchPaths =
+    static readonly string[] programFolders =
     [
-        @"C:\Program Files\Microsoft Office\root\Office16\DCF\SPREADSHEETCOMPARE.EXE",
-        @"C:\Program Files (x86)\Microsoft Office\root\Office16\DCF\SPREADSHEETCOMPARE.EXE",
-        @"C:\Program Files\Microsoft Office\root\Office15\DCF\SPREADSHEETCOMPARE.EXE",
-        @"C:\Program Files (x86)\Microsoft Office\root\Office15\DCF\SPREADSHEETCOMPARE.EXE"
+        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)
     ];
 
-    static readonly string[] appVlpPaths =
+    static readonly string[] searchRelativePaths =
     [
-        @"C:\Program Files\Microsoft Office\root\Client\AppVLP.exe",
-        @"C:\Program Files (x86)\Microsoft Office\root\Client\AppVLP.exe"
+        @"Microsoft Office\root\Office16\DCF\SPREADSHEETCOMPARE.EXE",
+        @"Microsoft Office\root\Office15\DCF\SPREADSHEETCOMPARE.EXE",
+        // Click-to-Run installs place the exe inside a virtual filesystem (vfs) directory
+        // rather than the standard Office16/Office15 location
+        @"Microsoft Office\root\vfs\ProgramFilesX86\Microsoft Office\Office16\DCF\SPREADSHEETCOMPARE.EXE",
+        @"Microsoft Office\root\vfs\ProgramFilesX86\Microsoft Office\Office15\DCF\SPREADSHEETCOMPARE.EXE"
     ];
 
     public static string? FindExecutable(string? settingsPath = null)
@@ -21,11 +23,15 @@ public static partial class SpreadsheetCompare
             return settingsPath;
         }
 
-        foreach (var path in searchPaths)
+        foreach (var folder in programFolders)
         {
-            if (File.Exists(path))
+            foreach (var relative in searchRelativePaths)
             {
-                return path;
+                var path = Path.Combine(folder, relative);
+                if (File.Exists(path))
+                {
+                    return path;
+                }
             }
         }
 
@@ -34,8 +40,9 @@ public static partial class SpreadsheetCompare
 
     static string? FindAppVlp()
     {
-        foreach (var path in appVlpPaths)
+        foreach (var folder in programFolders)
         {
+            var path = Path.Combine(folder, @"Microsoft Office\root\Client\AppVLP.exe");
             if (File.Exists(path))
             {
                 return path;
