@@ -8,7 +8,7 @@ public static partial class Word
             throw new("Microsoft Word is not installed");
         }
 
-        var job = CreateJobToKillChildProcessesWhenThisProcessExits();
+        var job = JobObject.Create();
 
         dynamic word = Activator.CreateInstance(wordType)!;
 
@@ -24,7 +24,7 @@ public static partial class Word
         var hwnd = (IntPtr) word.ActiveWindow.Hwnd;
         GetWindowThreadProcessId(hwnd, out var processId);
         using var process = Process.GetProcessById(processId);
-        AssignProcessToJobObject(job, process.Handle);
+        JobObject.AssignProcess(job, process.Handle);
 
         var doc2 = Open(word, path2);
 
@@ -45,7 +45,7 @@ public static partial class Word
 
         Marshal.ReleaseComObject(compare);
         Marshal.ReleaseComObject(word);
-        CloseHandle(job);
+        JobObject.Close(job);
 
         RestoreRibbon(wordType);
     }
@@ -84,19 +84,6 @@ public static partial class Word
         return compare;
     }
 
-    static IntPtr CreateJobToKillChildProcessesWhenThisProcessExits()
-    {
-        var job = CreateJobObject(IntPtr.Zero, null);
-        var info = new JOBOBJECT_EXTENDED_LIMIT_INFORMATION
-        {
-            BasicLimitInformation = new()
-            {
-                LimitFlags = jobObjectLimitKillOnJobClose
-            }
-        };
-        SetInformationJobObject(job, jobObjectExtendedLimitInformation, ref info, (uint)Marshal.SizeOf(info));
-        return job;
-    }
 
     internal static void ApplyQuiet(bool quiet, dynamic word)
     {
@@ -164,64 +151,10 @@ public static partial class Word
         }
     }
 
-    const uint jobObjectLimitKillOnJobClose = 0x2000;
-    const int jobObjectExtendedLimitInformation = 9;
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct JOBOBJECT_BASIC_LIMIT_INFORMATION
-    {
-        public long PerProcessUserTimeLimit;
-        public long PerJobUserTimeLimit;
-        public uint LimitFlags;
-        public nuint MinimumWorkingSetSize;
-        public nuint MaximumWorkingSetSize;
-        public uint ActiveProcessLimit;
-        public nuint Affinity;
-        public uint PriorityClass;
-        public uint SchedulingClass;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct IO_COUNTERS
-    {
-        public ulong ReadOperationCount;
-        public ulong WriteOperationCount;
-        public ulong OtherOperationCount;
-        public ulong ReadTransferCount;
-        public ulong WriteTransferCount;
-        public ulong OtherTransferCount;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION
-    {
-        public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
-        public IO_COUNTERS IoInfo;
-        public nuint ProcessMemoryLimit;
-        public nuint JobMemoryLimit;
-        public nuint PeakProcessMemoryUsed;
-        public nuint PeakJobMemoryUsed;
-    }
-
     [LibraryImport("user32.dll")]
     internal static partial uint GetWindowThreadProcessId(IntPtr hWnd, out int processId);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool SetForegroundWindow(IntPtr hWnd);
-
-    [LibraryImport("kernel32.dll", EntryPoint = "CreateJobObjectW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-    private static partial IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool SetInformationJobObject(IntPtr hJob, int jobObjectInfoClass, ref JOBOBJECT_EXTENDED_LIMIT_INFORMATION lpJobObjectInfo, uint cbJobObjectInfoLength);
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool CloseHandle(IntPtr hObject);
 }

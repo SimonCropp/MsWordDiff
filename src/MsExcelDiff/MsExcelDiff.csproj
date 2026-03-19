@@ -33,5 +33,8 @@
     <Compile Include="..\MsWordDiff\Logging.cs">
       <Link>Logging.cs</Link>
     </Compile>
+    <Compile Include="..\MsWordDiff\JobObject.cs">
+      <Link>JobObject.cs</Link>
+    </Compile>
   </ItemGroup>
 </Project>
