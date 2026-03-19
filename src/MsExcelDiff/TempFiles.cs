@@ -1,14 +1,18 @@
 static class TempFiles
 {
-    static readonly string directory = Path.Combine(Path.GetTempPath(), "MsExcelDiff");
+    public static readonly string TempDirectory = Path.Combine(Path.GetTempPath(), "MsExcelDiff");
+
+    static TempFiles()
+    {
+        Directory.CreateDirectory(TempDirectory);
+        CleanOld(TempDirectory);
+    }
 
     public static string Create(string content) =>
-        Create(directory, content);
+        Create(TempDirectory, content);
 
     internal static string Create(string directory, string content)
     {
-        Directory.CreateDirectory(directory);
-        CleanOld(directory);
         var path = Path.Combine(directory, $"{Guid.NewGuid()}.txt");
         File.WriteAllText(path, content);
         return path;

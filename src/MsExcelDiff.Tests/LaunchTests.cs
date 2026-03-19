@@ -2,7 +2,7 @@ public class LaunchTests
 {
     [Test]
     [Explicit]
-    public void Launch() =>
+    public Task Launch() =>
         SpreadsheetCompare.Launch(
             ProjectFiles.input_source_xlsx.FullPath,
             ProjectFiles.input_target_xlsx.FullPath);

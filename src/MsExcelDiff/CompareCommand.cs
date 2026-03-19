@@ -23,7 +23,7 @@ public class CompareCommand(SettingsManager settingsManager) : ICommand
 
         try
         {
-            SpreadsheetCompare.Launch(Path1.FullName, Path2.FullName, settings.SpreadsheetComparePath);
+            await SpreadsheetCompare.Launch(Path1.FullName, Path2.FullName, settings.SpreadsheetComparePath);
         }
         catch (Exception exception)
         {

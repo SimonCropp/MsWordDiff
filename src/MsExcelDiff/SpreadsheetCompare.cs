@@ -1,4 +1,4 @@
-public static partial class SpreadsheetCompare
+public static class SpreadsheetCompare
 {
     static readonly string[] programFolders =
     [
@@ -56,7 +56,7 @@ public static partial class SpreadsheetCompare
         return null;
     }
 
-    public static void Launch(string path1, string path2, string? exePath = null)
+    public static async Task Launch(string path1, string path2, string? exePath = null)
     {
         var exe = FindExecutable(exePath);
         if (exe == null)
@@ -77,10 +77,10 @@ public static partial class SpreadsheetCompare
 
         try
         {
-            using var process = LaunchProcess(exe, tempFile);
+            using var process = await LaunchProcess(exe, tempFile);
 
             JobObject.AssignProcess(job, process.Handle);
-            process.WaitForExit();
+            await process.WaitForExitAsync();
         }
         catch when (TempFiles.TryDelete(tempFile))
         {
@@ -93,7 +93,7 @@ public static partial class SpreadsheetCompare
         }
     }
 
-    static Process LaunchProcess(string exe, string tempFile)
+    static async Task<Process> LaunchProcess(string exe, string tempFile)
     {
         // Click-to-Run Office installs require launching via AppVLP.exe (the App-V
         // virtualization layer). SPREADSHEETCOMPARE.EXE crashes if launched directly.
@@ -104,7 +104,7 @@ public static partial class SpreadsheetCompare
             return LaunchDirect(exe, tempFile);
         }
 
-        return LaunchViaAppVlp(appVlp, exe, tempFile);
+        return await LaunchViaAppVlp(appVlp, exe, tempFile);
     }
 
     static Process LaunchDirect(string exe, string tempFile) =>
@@ -115,16 +115,18 @@ public static partial class SpreadsheetCompare
             })
         ?? throw new("Failed to start Spreadsheet Compare process");
 
-    static Process LaunchViaAppVlp(string appVlp, string exe, string tempFile)
+    static readonly string lockFilePath = Path.Combine(TempFiles.TempDirectory, ".lock");
+
+    static async Task<Process> LaunchViaAppVlp(string appVlp, string exe, string tempFile)
     {
         // Serialize the snapshot-launch-identify sequence across concurrent
         // diffexcel instances. Without this, concurrent instances snapshot the
         // same PID set, race to claim the same SPREADSHEETCOMPARE process, and
         // leave others orphaned (not in any job object, so they survive when
         // diffexcel is killed).
-        using var mutex = new Mutex(false, @"Global\MsExcelDiff_Launch");
-        mutex.WaitOne();
-        try
+        // Uses a file lock instead of a Mutex because file locks are not
+        // thread-affine, allowing async code within the critical section.
+        using (await AcquireFileLock())
         {
             var existingPids = GetSpreadsheetComparePids();
 
@@ -137,15 +139,28 @@ public static partial class SpreadsheetCompare
 
             // AppVLP.exe is a launcher that exits after starting the real process.
             // Find the actual SPREADSHEETCOMPARE process and wait on it.
-            launcher.WaitForExit();
+            await launcher.WaitForExitAsync();
 
-            return WaitForProcess(existingPids)
+            return await WaitForProcess(existingPids)
                    ?? throw new("Spreadsheet Compare did not start. Ensure the application is installed correctly.");
         }
-        finally
+    }
+
+    static async Task<FileStream> AcquireFileLock()
+    {
+        for (var i = 0; i < 300; i++)
         {
-            mutex.ReleaseMutex();
+            try
+            {
+                return new(lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException)
+            {
+                await Task.Delay(100);
+            }
         }
+
+        throw new IOException($"Failed to acquire lock file: {lockFilePath}");
     }
 
     static HashSet<int> GetSpreadsheetComparePids() =>
@@ -163,10 +178,10 @@ public static partial class SpreadsheetCompare
         return pids;
     }
 
-    static Process? WaitForProcess(HashSet<int> existingPids) =>
+    static Task<Process?> WaitForProcess(HashSet<int> existingPids) =>
         WaitForProcess("SPREADSHEETCOMPARE", existingPids);
 
-    internal static Process? WaitForProcess(string processName, HashSet<int> existingPids, int maxAttempts = 100)
+    internal static async Task<Process?> WaitForProcess(string processName, HashSet<int> existingPids, int maxAttempts = 100)
     {
         for (var i = 0; i < maxAttempts; i++)
         {
@@ -189,7 +204,7 @@ public static partial class SpreadsheetCompare
                 return result;
             }
 
-            Thread.Sleep(100);
+            await Task.Delay(100);
         }
 
         return null;
