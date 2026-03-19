@@ -8,17 +8,21 @@ public static partial class SpreadsheetCompare
 
     static readonly string[] searchRelativePaths =
     [
+        // Office 16 (Microsoft 365 / Office 2016+) - most common
         @"Microsoft Office\root\Office16\DCF\SPREADSHEETCOMPARE.EXE",
-        @"Microsoft Office\root\Office15\DCF\SPREADSHEETCOMPARE.EXE",
         // Click-to-Run installs place the exe inside a virtual filesystem (vfs) directory
-        // rather than the standard Office16/Office15 location
         @"Microsoft Office\root\vfs\ProgramFilesX86\Microsoft Office\Office16\DCF\SPREADSHEETCOMPARE.EXE",
-        @"Microsoft Office\root\vfs\ProgramFilesX86\Microsoft Office\Office15\DCF\SPREADSHEETCOMPARE.EXE"
+        @"Microsoft Office\root\vfs\ProgramFilesX64\Microsoft Office\Office16\DCF\SPREADSHEETCOMPARE.EXE",
+        // Office 15 (Office 2013)
+        @"Microsoft Office\root\Office15\DCF\SPREADSHEETCOMPARE.EXE",
+        @"Microsoft Office\root\vfs\ProgramFilesX86\Microsoft Office\Office15\DCF\SPREADSHEETCOMPARE.EXE",
+        @"Microsoft Office\root\vfs\ProgramFilesX64\Microsoft Office\Office15\DCF\SPREADSHEETCOMPARE.EXE"
     ];
 
     public static string? FindExecutable(string? settingsPath = null)
     {
-        if (settingsPath != null && File.Exists(settingsPath))
+        if (settingsPath != null &&
+            File.Exists(settingsPath))
         {
             return settingsPath;
         }
@@ -57,18 +61,20 @@ public static partial class SpreadsheetCompare
         var exe = FindExecutable(exePath);
         if (exe == null)
         {
-            throw new("Spreadsheet Compare (SPREADSHEETCOMPARE.EXE) was not found. " +
-                       "It is included with Office Professional Plus / Microsoft 365 Apps for Enterprise. " +
-                       "If installed in a custom location, use the 'set-path' command to configure the path.");
+            throw new(
+                """
+                Spreadsheet Compare (SPREADSHEETCOMPARE.EXE) was not found.
+                It is included with Office Professional Plus / Microsoft 365 Apps for Enterprise.
+                If installed in a custom location, use the 'set-path' command to configure the path.
+                """);
         }
 
+        // SPREADSHEETCOMPARE.EXE takes a single argument: a path to a file
+        // containing the two workbook paths (one per line)
         var tempFile = Path.GetTempFileName();
         File.WriteAllText(tempFile, $"{path1}{Environment.NewLine}{path2}");
 
-        // Snapshot existing PIDs before launch
-        var existingPids = GetSpreadsheetComparePids();
-
-        var job = CreateJobToKillChildProcessesWhenThisProcessExits();
+        var job = JobObject.Create();
 
         try
         {
@@ -77,16 +83,7 @@ public static partial class SpreadsheetCompare
             var appVlp = FindAppVlp();
             ProcessStartInfo startInfo;
 
-            if (appVlp != null)
-            {
-                startInfo = new()
-                {
-                    FileName = appVlp,
-                    Arguments = $"\"{exe}\" {tempFile}",
-                    UseShellExecute = false
-                };
-            }
-            else
+            if (appVlp == null)
             {
                 // Non-Click-to-Run install: launch directly
                 startInfo = new()
@@ -96,74 +93,124 @@ public static partial class SpreadsheetCompare
                     UseShellExecute = true
                 };
             }
+            else
+            {
+                startInfo = new()
+                {
+                    FileName = appVlp,
+                    Arguments = $"\"{exe}\" {tempFile}",
+                    UseShellExecute = false
+                };
+            }
 
-            using var launcher = Process.Start(startInfo)
-                ?? throw new("Failed to start Spreadsheet Compare process");
+            // Serialize the snapshot-launch-identify sequence across concurrent
+            // diffexcel instances. Without this, concurrent instances snapshot the
+            // same PID set, race to claim the same SPREADSHEETCOMPARE process, and
+            // leave others orphaned (not in any job object, so they survive when
+            // diffexcel is killed).
+            Process? uiProcess;
+            using (var mutex = new Mutex(false, @"Global\MsExcelDiff_Launch"))
+            {
+                mutex.WaitOne();
+                try
+                {
+                    var existingPids = GetSpreadsheetComparePids();
 
-            // AppVLP.exe is a launcher that exits after starting the real process.
-            // Find the actual SPREADSHEETCOMPARE process and wait on it.
-            launcher.WaitForExit();
+                    using var launcher = Process.Start(startInfo)
+                                         ?? throw new("Failed to start Spreadsheet Compare process");
 
-            using var uiProcess = WaitForProcess(existingPids);
+                    // AppVLP.exe is a launcher that exits after starting the real process.
+                    // Find the actual SPREADSHEETCOMPARE process and wait on it.
+                    launcher.WaitForExit();
+
+                    uiProcess = WaitForProcess(existingPids);
+
+                    if (uiProcess != null)
+                    {
+                        JobObject.AssignProcess(job, uiProcess.Handle);
+                    }
+                }
+                finally
+                {
+                    mutex.ReleaseMutex();
+                }
+            }
 
             if (uiProcess == null)
             {
                 throw new("Spreadsheet Compare did not start. Ensure the application is installed correctly.");
             }
 
-            AssignProcessToJobObject(job, uiProcess.Handle);
-
-            uiProcess.WaitForExit();
-        }
-        catch
-        {
-            if (File.Exists(tempFile))
+            try
             {
-                try
-                {
-                    File.Delete(tempFile);
-                }
-                catch
-                {
-                    // Best effort cleanup
-                }
+                uiProcess.WaitForExit();
             }
-
+            finally
+            {
+                uiProcess.Dispose();
+            }
+        }
+        catch when (TryDeleteTempFile(tempFile))
+        {
+            // unreachable: TryDeleteTempFile always returns false
             throw;
         }
         finally
         {
-            CloseHandle(job);
+            JobObject.Close(job);
         }
     }
 
-    static HashSet<int> GetSpreadsheetComparePids()
+    static bool TryDeleteTempFile(string tempFile)
     {
-        var processes = Process.GetProcessesByName("SPREADSHEETCOMPARE");
-        var pids = processes.Select(p => p.Id).ToHashSet();
-        foreach (var p in processes)
+        if (File.Exists(tempFile))
         {
-            p.Dispose();
+            try
+            {
+                File.Delete(tempFile);
+            }
+            catch
+            {
+                // Best effort cleanup
+            }
+        }
+
+        return false;
+    }
+
+    static HashSet<int> GetSpreadsheetComparePids() =>
+        GetProcessPids("SPREADSHEETCOMPARE");
+
+    internal static HashSet<int> GetProcessPids(string processName)
+    {
+        var processes = Process.GetProcessesByName(processName);
+        var pids = processes.Select(_ => _.Id).ToHashSet();
+        foreach (var process in processes)
+        {
+            process.Dispose();
         }
 
         return pids;
     }
 
-    static Process? WaitForProcess(HashSet<int> existingPids)
+    static Process? WaitForProcess(HashSet<int> existingPids) =>
+        WaitForProcess("SPREADSHEETCOMPARE", existingPids);
+
+    internal static Process? WaitForProcess(string processName, HashSet<int> existingPids, int maxAttempts = 100)
     {
-        for (var i = 0; i < 100; i++)
+        for (var i = 0; i < maxAttempts; i++)
         {
-            var processes = Process.GetProcessesByName("SPREADSHEETCOMPARE");
+            var processes = Process.GetProcessesByName(processName);
             Process? result = null;
-            foreach (var p in processes)
+            foreach (var process in processes)
             {
-                if (result == null && !existingPids.Contains(p.Id))
+                if (result == null && !existingPids.Contains(process.Id))
                 {
-                    result = p;
+                    result = process;
                 }
                 else
                 {
-                    p.Dispose();
+                    process.Dispose();
                 }
             }
 
@@ -178,71 +225,4 @@ public static partial class SpreadsheetCompare
         return null;
     }
 
-    static IntPtr CreateJobToKillChildProcessesWhenThisProcessExits()
-    {
-        var job = CreateJobObject(IntPtr.Zero, null);
-        var info = new JOBOBJECT_EXTENDED_LIMIT_INFORMATION
-        {
-            BasicLimitInformation = new()
-            {
-                LimitFlags = jobObjectLimitKillOnJobClose
-            }
-        };
-        SetInformationJobObject(job, jobObjectExtendedLimitInformation, ref info, (uint)Marshal.SizeOf(info));
-        return job;
-    }
-
-    const uint jobObjectLimitKillOnJobClose = 0x2000;
-    const int jobObjectExtendedLimitInformation = 9;
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct JOBOBJECT_BASIC_LIMIT_INFORMATION
-    {
-        public long PerProcessUserTimeLimit;
-        public long PerJobUserTimeLimit;
-        public uint LimitFlags;
-        public nuint MinimumWorkingSetSize;
-        public nuint MaximumWorkingSetSize;
-        public uint ActiveProcessLimit;
-        public nuint Affinity;
-        public uint PriorityClass;
-        public uint SchedulingClass;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct IO_COUNTERS
-    {
-        public ulong ReadOperationCount;
-        public ulong WriteOperationCount;
-        public ulong OtherOperationCount;
-        public ulong ReadTransferCount;
-        public ulong WriteTransferCount;
-        public ulong OtherTransferCount;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION
-    {
-        public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
-        public IO_COUNTERS IoInfo;
-        public nuint ProcessMemoryLimit;
-        public nuint JobMemoryLimit;
-        public nuint PeakProcessMemoryUsed;
-        public nuint PeakJobMemoryUsed;
-    }
-
-    [LibraryImport("kernel32.dll", EntryPoint = "CreateJobObjectW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-    private static partial IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool SetInformationJobObject(IntPtr hJob, int jobObjectInfoClass, ref JOBOBJECT_EXTENDED_LIMIT_INFORMATION lpJobObjectInfo, uint cbJobObjectInfoLength);
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool CloseHandle(IntPtr hObject);
 }
