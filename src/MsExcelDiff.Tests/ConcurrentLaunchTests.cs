@@ -1,41 +1,38 @@
-using System.Collections.Concurrent;
-using System.Diagnostics;
-
 public class ConcurrentLaunchTests
 {
-    string _processName = null!;
-    string _exePath = null!;
-    readonly List<Process> _processes = [];
+    string processName = null!;
+    string exePath = null!;
+    readonly List<Process> processes = [];
 
     [Before(Test)]
     public void Setup()
     {
-        _processName = $"test_{Guid.NewGuid():N}";
-        _exePath = Path.Combine(Path.GetTempPath(), $"{_processName}.exe");
-        File.Copy(@"C:\Windows\System32\cmd.exe", _exePath);
+        processName = $"test_{Guid.NewGuid():N}";
+        exePath = Path.Combine(Path.GetTempPath(), $"{processName}.exe");
+        File.Copy(@"C:\Windows\System32\cmd.exe", exePath);
     }
 
     [After(Test)]
     public void Cleanup()
     {
-        foreach (var p in _processes)
+        foreach (var process in processes)
         {
             try
             {
-                p.Kill();
+                process.Kill();
             }
             catch
             {
             }
 
-            p.Dispose();
+            process.Dispose();
         }
 
-        _processes.Clear();
+        processes.Clear();
 
         try
         {
-            File.Delete(_exePath);
+            File.Delete(exePath);
         }
         catch
         {
@@ -44,13 +41,14 @@ public class ConcurrentLaunchTests
 
     Process StartTestProcess()
     {
-        var p = Process.Start(new ProcessStartInfo(_exePath, "/c ping -n 300 127.0.0.1 > nul")
-        {
-            CreateNoWindow = true,
-            UseShellExecute = false
-        })!;
-        _processes.Add(p);
-        return p;
+        var process = Process.Start(
+            new ProcessStartInfo(exePath, "/c ping -n 300 127.0.0.1 > nul")
+            {
+                CreateNoWindow = true,
+                UseShellExecute = false
+            })!;
+        processes.Add(process);
+        return process;
     }
 
     [Test]
@@ -59,7 +57,7 @@ public class ConcurrentLaunchTests
         var p1 = StartTestProcess();
         var p2 = StartTestProcess();
 
-        var pids = SpreadsheetCompare.GetProcessPids(_processName);
+        var pids = SpreadsheetCompare.GetProcessPids(processName);
 
         await Assert.That(pids).Contains(p1.Id);
         await Assert.That(pids).Contains(p2.Id);
@@ -68,25 +66,25 @@ public class ConcurrentLaunchTests
     [Test]
     public async Task WaitForProcess_FindsNewProcess()
     {
-        var p = StartTestProcess();
+        var process = StartTestProcess();
 
-        using var found = SpreadsheetCompare.WaitForProcess(_processName, []);
+        using var found = SpreadsheetCompare.WaitForProcess(processName, []);
 
         await Assert.That(found).IsNotNull();
-        await Assert.That(found!.Id).IsEqualTo(p.Id);
+        await Assert.That(found!.Id).IsEqualTo(process.Id);
     }
 
     [Test]
     public async Task WaitForProcess_SkipsExistingPids()
     {
         var existing = StartTestProcess();
-        var newProcess = StartTestProcess();
+        StartTestProcess();
         var existingPids = new HashSet<int>
         {
             existing.Id
         };
 
-        using var found = SpreadsheetCompare.WaitForProcess(_processName, existingPids);
+        using var found = SpreadsheetCompare.WaitForProcess(processName, existingPids);
 
         await Assert.That(found).IsNotNull();
         await Assert.That(found!.Id).IsNotEqualTo(existing.Id);
@@ -102,7 +100,7 @@ public class ConcurrentLaunchTests
         };
 
         // Use maxAttempts=1 to avoid 10s timeout
-        using var found = SpreadsheetCompare.WaitForProcess(_processName, existingPids, maxAttempts: 1);
+        using var found = SpreadsheetCompare.WaitForProcess(processName, existingPids, maxAttempts: 1);
 
         await Assert.That(found).IsNull();
     }
@@ -125,9 +123,9 @@ public class ConcurrentLaunchTests
                 mutex.WaitOne();
                 try
                 {
-                    var existing = SpreadsheetCompare.GetProcessPids(_processName);
+                    var existing = SpreadsheetCompare.GetProcessPids(processName);
                     StartTestProcess();
-                    using var found = SpreadsheetCompare.WaitForProcess(_processName, existing);
+                    using var found = SpreadsheetCompare.WaitForProcess(processName, existing);
                     if (found != null)
                     {
                         identifiedPids.Add(found.Id);
@@ -152,7 +150,7 @@ public class ConcurrentLaunchTests
         // Demonstrates the bug: when all callers use the same PID snapshot
         // (as happens without mutex serialization), they all identify the
         // same process, leaving others orphaned.
-        var snapshot = SpreadsheetCompare.GetProcessPids(_processName);
+        var snapshot = SpreadsheetCompare.GetProcessPids(processName);
 
         const int count = 3;
         for (var i = 0; i < count; i++)
@@ -163,7 +161,7 @@ public class ConcurrentLaunchTests
         var identifiedPids = new List<int>();
         for (var i = 0; i < count; i++)
         {
-            using var found = SpreadsheetCompare.WaitForProcess(_processName, snapshot);
+            using var found = SpreadsheetCompare.WaitForProcess(processName, snapshot);
             if (found != null)
             {
                 identifiedPids.Add(found.Id);

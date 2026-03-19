@@ -141,26 +141,32 @@ public static partial class SpreadsheetCompare
                 uiProcess.Dispose();
             }
         }
-        catch
+        catch when (TryDeleteTempFile(tempFile))
         {
-            if (File.Exists(tempFile))
-            {
-                try
-                {
-                    File.Delete(tempFile);
-                }
-                catch
-                {
-                    // Best effort cleanup
-                }
-            }
-
+            // unreachable: TryDeleteTempFile always returns false
             throw;
         }
         finally
         {
             CloseHandle(job);
         }
+    }
+
+    static bool TryDeleteTempFile(string tempFile)
+    {
+        if (File.Exists(tempFile))
+        {
+            try
+            {
+                File.Delete(tempFile);
+            }
+            catch
+            {
+                // Best effort cleanup
+            }
+        }
+
+        return false;
     }
 
     static HashSet<int> GetSpreadsheetComparePids() =>
