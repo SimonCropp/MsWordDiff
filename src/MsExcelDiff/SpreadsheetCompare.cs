@@ -21,7 +21,8 @@ public static partial class SpreadsheetCompare
 
     public static string? FindExecutable(string? settingsPath = null)
     {
-        if (settingsPath != null && File.Exists(settingsPath))
+        if (settingsPath != null &&
+            File.Exists(settingsPath))
         {
             return settingsPath;
         }
@@ -60,9 +61,12 @@ public static partial class SpreadsheetCompare
         var exe = FindExecutable(exePath);
         if (exe == null)
         {
-            throw new("Spreadsheet Compare (SPREADSHEETCOMPARE.EXE) was not found. " +
-                       "It is included with Office Professional Plus / Microsoft 365 Apps for Enterprise. " +
-                       "If installed in a custom location, use the 'set-path' command to configure the path.");
+            throw new(
+                """
+                Spreadsheet Compare (SPREADSHEETCOMPARE.EXE) was not found.
+                It is included with Office Professional Plus / Microsoft 365 Apps for Enterprise.
+                If installed in a custom location, use the 'set-path' command to configure the path.
+                """);
         }
 
         var tempFile = Path.GetTempFileName();
@@ -77,16 +81,7 @@ public static partial class SpreadsheetCompare
             var appVlp = FindAppVlp();
             ProcessStartInfo startInfo;
 
-            if (appVlp != null)
-            {
-                startInfo = new()
-                {
-                    FileName = appVlp,
-                    Arguments = $"\"{exe}\" {tempFile}",
-                    UseShellExecute = false
-                };
-            }
-            else
+            if (appVlp == null)
             {
                 // Non-Click-to-Run install: launch directly
                 startInfo = new()
@@ -94,6 +89,15 @@ public static partial class SpreadsheetCompare
                     FileName = exe,
                     Arguments = tempFile,
                     UseShellExecute = true
+                };
+            }
+            else
+            {
+                startInfo = new()
+                {
+                    FileName = appVlp,
+                    Arguments = $"\"{exe}\" {tempFile}",
+                    UseShellExecute = false
                 };
             }
 
@@ -111,7 +115,7 @@ public static partial class SpreadsheetCompare
                     var existingPids = GetSpreadsheetComparePids();
 
                     using var launcher = Process.Start(startInfo)
-                        ?? throw new("Failed to start Spreadsheet Compare process");
+                                         ?? throw new("Failed to start Spreadsheet Compare process");
 
                     // AppVLP.exe is a launcher that exits after starting the real process.
                     // Find the actual SPREADSHEETCOMPARE process and wait on it.
@@ -178,10 +182,10 @@ public static partial class SpreadsheetCompare
     internal static HashSet<int> GetProcessPids(string processName)
     {
         var processes = Process.GetProcessesByName(processName);
-        var pids = processes.Select(p => p.Id).ToHashSet();
-        foreach (var p in processes)
+        var pids = processes.Select(_ => _.Id).ToHashSet();
+        foreach (var process in processes)
         {
-            p.Dispose();
+            process.Dispose();
         }
 
         return pids;
@@ -196,15 +200,15 @@ public static partial class SpreadsheetCompare
         {
             var processes = Process.GetProcessesByName(processName);
             Process? result = null;
-            foreach (var p in processes)
+            foreach (var process in processes)
             {
-                if (result == null && !existingPids.Contains(p.Id))
+                if (result == null && !existingPids.Contains(process.Id))
                 {
-                    result = p;
+                    result = process;
                 }
                 else
                 {
-                    p.Dispose();
+                    process.Dispose();
                 }
             }
 
