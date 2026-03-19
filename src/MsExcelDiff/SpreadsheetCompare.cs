@@ -65,9 +65,6 @@ public static partial class SpreadsheetCompare
         var tempFile = Path.GetTempFileName();
         File.WriteAllText(tempFile, $"{path1}{Environment.NewLine}{path2}");
 
-        // Snapshot existing PIDs before launch
-        var existingPids = GetSpreadsheetComparePids();
-
         var job = CreateJobToKillChildProcessesWhenThisProcessExits();
 
         try
@@ -97,23 +94,52 @@ public static partial class SpreadsheetCompare
                 };
             }
 
-            using var launcher = Process.Start(startInfo)
-                ?? throw new("Failed to start Spreadsheet Compare process");
+            // Serialize the snapshot-launch-identify sequence across concurrent
+            // diffexcel instances. Without this, concurrent instances snapshot the
+            // same PID set, race to claim the same SPREADSHEETCOMPARE process, and
+            // leave others orphaned (not in any job object, so they survive when
+            // diffexcel is killed).
+            Process? uiProcess;
+            using (var mutex = new Mutex(false, @"Global\MsExcelDiff_Launch"))
+            {
+                mutex.WaitOne();
+                try
+                {
+                    var existingPids = GetSpreadsheetComparePids();
 
-            // AppVLP.exe is a launcher that exits after starting the real process.
-            // Find the actual SPREADSHEETCOMPARE process and wait on it.
-            launcher.WaitForExit();
+                    using var launcher = Process.Start(startInfo)
+                        ?? throw new("Failed to start Spreadsheet Compare process");
 
-            using var uiProcess = WaitForProcess(existingPids);
+                    // AppVLP.exe is a launcher that exits after starting the real process.
+                    // Find the actual SPREADSHEETCOMPARE process and wait on it.
+                    launcher.WaitForExit();
+
+                    uiProcess = WaitForProcess(existingPids);
+
+                    if (uiProcess != null)
+                    {
+                        AssignProcessToJobObject(job, uiProcess.Handle);
+                    }
+                }
+                finally
+                {
+                    mutex.ReleaseMutex();
+                }
+            }
 
             if (uiProcess == null)
             {
                 throw new("Spreadsheet Compare did not start. Ensure the application is installed correctly.");
             }
 
-            AssignProcessToJobObject(job, uiProcess.Handle);
-
-            uiProcess.WaitForExit();
+            try
+            {
+                uiProcess.WaitForExit();
+            }
+            finally
+            {
+                uiProcess.Dispose();
+            }
         }
         catch
         {
@@ -137,9 +163,12 @@ public static partial class SpreadsheetCompare
         }
     }
 
-    static HashSet<int> GetSpreadsheetComparePids()
+    static HashSet<int> GetSpreadsheetComparePids() =>
+        GetProcessPids("SPREADSHEETCOMPARE");
+
+    internal static HashSet<int> GetProcessPids(string processName)
     {
-        var processes = Process.GetProcessesByName("SPREADSHEETCOMPARE");
+        var processes = Process.GetProcessesByName(processName);
         var pids = processes.Select(p => p.Id).ToHashSet();
         foreach (var p in processes)
         {
@@ -149,11 +178,14 @@ public static partial class SpreadsheetCompare
         return pids;
     }
 
-    static Process? WaitForProcess(HashSet<int> existingPids)
+    static Process? WaitForProcess(HashSet<int> existingPids) =>
+        WaitForProcess("SPREADSHEETCOMPARE", existingPids);
+
+    internal static Process? WaitForProcess(string processName, HashSet<int> existingPids, int maxAttempts = 100)
     {
-        for (var i = 0; i < 100; i++)
+        for (var i = 0; i < maxAttempts; i++)
         {
-            var processes = Process.GetProcessesByName("SPREADSHEETCOMPARE");
+            var processes = Process.GetProcessesByName(processName);
             Process? result = null;
             foreach (var p in processes)
             {
