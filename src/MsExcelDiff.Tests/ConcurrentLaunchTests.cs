@@ -68,7 +68,7 @@ public class ConcurrentLaunchTests
     {
         var process = StartTestProcess();
 
-        using var found = SpreadsheetCompare.WaitForProcess(processName, []);
+        using var found = await SpreadsheetCompare.WaitForProcess(processName, []);
 
         await Assert.That(found).IsNotNull();
         await Assert.That(found!.Id).IsEqualTo(process.Id);
@@ -84,7 +84,7 @@ public class ConcurrentLaunchTests
             existing.Id
         };
 
-        using var found = SpreadsheetCompare.WaitForProcess(processName, existingPids);
+        using var found = await SpreadsheetCompare.WaitForProcess(processName, existingPids);
 
         await Assert.That(found).IsNotNull();
         await Assert.That(found!.Id).IsNotEqualTo(existing.Id);
@@ -100,7 +100,7 @@ public class ConcurrentLaunchTests
         };
 
         // Use maxAttempts=1 to avoid 10s timeout
-        using var found = SpreadsheetCompare.WaitForProcess(processName, existingPids, maxAttempts: 1);
+        using var found = await SpreadsheetCompare.WaitForProcess(processName, existingPids, maxAttempts: 1);
 
         await Assert.That(found).IsNull();
     }
@@ -110,22 +110,21 @@ public class ConcurrentLaunchTests
     {
         const int count = 5;
         var identifiedPids = new ConcurrentBag<int>();
-        var mutexName = $@"Global\Test_{Guid.NewGuid():N}";
+        using var semaphore = new SemaphoreSlim(1, 1);
 
         // Simulate N concurrent diffexcel instances, each doing the
-        // mutex-protected snapshot-launch-identify sequence.
-        // The mutex ensures each snapshot sees previously identified processes.
+        // serialized snapshot-launch-identify sequence.
+        // The semaphore ensures each snapshot sees previously identified processes.
         var tasks = Enumerable
             .Range(0, count)
-            .Select(_ => Task.Run(() =>
+            .Select(_ => Task.Run(async () =>
             {
-                using var mutex = new Mutex(false, mutexName);
-                mutex.WaitOne();
+                await semaphore.WaitAsync();
                 try
                 {
                     var existing = SpreadsheetCompare.GetProcessPids(processName);
                     StartTestProcess();
-                    using var found = SpreadsheetCompare.WaitForProcess(processName, existing);
+                    using var found = await SpreadsheetCompare.WaitForProcess(processName, existing);
                     if (found != null)
                     {
                         identifiedPids.Add(found.Id);
@@ -133,7 +132,7 @@ public class ConcurrentLaunchTests
                 }
                 finally
                 {
-                    mutex.ReleaseMutex();
+                    semaphore.Release();
                 }
             }))
             .ToArray();
@@ -161,7 +160,7 @@ public class ConcurrentLaunchTests
         var identifiedPids = new List<int>();
         for (var i = 0; i < count; i++)
         {
-            using var found = SpreadsheetCompare.WaitForProcess(processName, snapshot);
+            using var found = await SpreadsheetCompare.WaitForProcess(processName, snapshot);
             if (found != null)
             {
                 identifiedPids.Add(found.Id);

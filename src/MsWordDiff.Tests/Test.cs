@@ -2,14 +2,14 @@ public class Test
 {
     [Test]
     [Explicit]
-    public void Launch() =>
+    public Task Launch() =>
         Word.Launch(
             ProjectFiles.input_temp_docx.FullPath,
             ProjectFiles.input_target_docx.FullPath);
 
     [Test]
     [Explicit]
-    public void LaunchQuiet() =>
+    public Task LaunchQuiet() =>
         Word.Launch(
             ProjectFiles.input_temp_docx.FullPath,
             ProjectFiles.input_target_docx.FullPath,

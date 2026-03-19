@@ -1,6 +1,6 @@
 public static partial class Word
 {
-    public static void Launch(string path1, string path2, bool quiet = false)
+    public static async Task Launch(string path1, string path2, bool quiet = false)
     {
         var wordType = Type.GetTypeFromProgID("Word.Application");
         if (wordType == null)
@@ -41,7 +41,7 @@ public static partial class Word
         // Bring Word to the foreground
         SetForegroundWindow(hwnd);
 
-        process.WaitForExit();
+        await process.WaitForExitAsync();
 
         Marshal.ReleaseComObject(compare);
         Marshal.ReleaseComObject(word);

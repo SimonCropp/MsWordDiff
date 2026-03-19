@@ -28,7 +28,7 @@ public class CompareCommand(SettingsManager settingsManager) : ICommand
 
         try
         {
-            Word.Launch(Path1.FullName, Path2.FullName, quiet);
+            await Word.Launch(Path1.FullName, Path2.FullName, quiet);
         }
         catch (Exception exception)
         {

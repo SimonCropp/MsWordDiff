@@ -3,8 +3,11 @@ public class TempFilesTests
     string tempDir = null!;
 
     [Before(Test)]
-    public void Setup() =>
+    public void Setup()
+    {
         tempDir = Path.Combine(Path.GetTempPath(), $"MsExcelDiff_Test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+    }
 
     [After(Test)]
     public void Cleanup()
@@ -23,7 +26,7 @@ public class TempFilesTests
     {
         var path = TempFiles.Create(tempDir, "some content");
 
-        await Assert.That(File.ReadAllText(path)).IsEqualTo("some content");
+        await Assert.That(await File.ReadAllTextAsync(path)).IsEqualTo("some content");
     }
 
     [Test]
