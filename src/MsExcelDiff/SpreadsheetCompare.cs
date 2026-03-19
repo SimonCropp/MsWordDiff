@@ -8,13 +8,14 @@ public static partial class SpreadsheetCompare
 
     static readonly string[] searchRelativePaths =
     [
+        // Office 16 (Microsoft 365 / Office 2016+) - most common
         @"Microsoft Office\root\Office16\DCF\SPREADSHEETCOMPARE.EXE",
-        @"Microsoft Office\root\Office15\DCF\SPREADSHEETCOMPARE.EXE",
         // Click-to-Run installs place the exe inside a virtual filesystem (vfs) directory
-        // rather than the standard Office16/Office15 location
         @"Microsoft Office\root\vfs\ProgramFilesX86\Microsoft Office\Office16\DCF\SPREADSHEETCOMPARE.EXE",
-        @"Microsoft Office\root\vfs\ProgramFilesX86\Microsoft Office\Office15\DCF\SPREADSHEETCOMPARE.EXE",
         @"Microsoft Office\root\vfs\ProgramFilesX64\Microsoft Office\Office16\DCF\SPREADSHEETCOMPARE.EXE",
+        // Office 15 (Office 2013)
+        @"Microsoft Office\root\Office15\DCF\SPREADSHEETCOMPARE.EXE",
+        @"Microsoft Office\root\vfs\ProgramFilesX86\Microsoft Office\Office15\DCF\SPREADSHEETCOMPARE.EXE",
         @"Microsoft Office\root\vfs\ProgramFilesX64\Microsoft Office\Office15\DCF\SPREADSHEETCOMPARE.EXE"
     ];
 
