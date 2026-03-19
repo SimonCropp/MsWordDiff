@@ -69,6 +69,8 @@ public static partial class SpreadsheetCompare
                 """);
         }
 
+        // SPREADSHEETCOMPARE.EXE takes a single argument: a path to a file
+        // containing the two workbook paths (one per line)
         var tempFile = Path.GetTempFileName();
         File.WriteAllText(tempFile, $"{path1}{Environment.NewLine}{path2}");
 
