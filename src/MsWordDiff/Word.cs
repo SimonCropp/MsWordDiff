@@ -10,42 +10,70 @@ public static partial class Word
 
         var job = JobObject.Create();
 
+        // Snapshot existing Word PIDs before creating the COM instance so we can
+        // identify the new WINWORD.EXE process immediately after creation and assign
+        // it to the Job Object before any document operations that could throw.
+        // Previously, assignment happened after opening the first document, leaving
+        // a window where exceptions would orphan the Word process.
+        var existingPids = GetWordProcessIds();
         dynamic word = Activator.CreateInstance(wordType)!;
+        var process = FindNewWordProcess(existingPids);
+        if (process != null)
+        {
+            JobObject.AssignProcess(job, process.Handle);
+        }
 
-        // WdAlertLevel.wdAlertsNone = 0
-        word.DisplayAlerts = 0;
+        try
+        {
+            // WdAlertLevel.wdAlertsNone = 0
+            word.DisplayAlerts = 0;
 
-        // Disable AutoRecover to prevent "serious error" recovery dialogs
-        word.Options.SaveInterval = 0;
+            // Disable AutoRecover to prevent "serious error" recovery dialogs
+            word.Options.SaveInterval = 0;
 
-        var doc1 = Open(word, path1);
+            var doc1 = Open(word, path1);
 
-        // Get process from Word's window handle and assign to job
-        var hwnd = (IntPtr) word.ActiveWindow.Hwnd;
-        GetWindowThreadProcessId(hwnd, out var processId);
-        using var process = Process.GetProcessById(processId);
-        JobObject.AssignProcess(job, process.Handle);
+            // Fallback: if process snapshot didn't find the new process, get it via window handle
+            if (process == null)
+            {
+                var hwnd = (IntPtr)word.ActiveWindow.Hwnd;
+                GetWindowThreadProcessId(hwnd, out var processId);
+                process = Process.GetProcessById(processId);
+                JobObject.AssignProcess(job, process.Handle);
+            }
 
-        var doc2 = Open(word, path2);
+            var doc2 = Open(word, path2);
 
-        var compare = LaunchCompare(word, doc1, doc2);
+            var compare = LaunchCompare(word, doc1, doc2);
 
-        word.Visible = true;
+            word.Visible = true;
 
-        ApplyQuiet(quiet, word);
+            ApplyQuiet(quiet, word);
 
-        HideNavigationPane(word);
+            HideNavigationPane(word);
 
-        MinimizeRibbon(word);
+            MinimizeRibbon(word);
 
-        // Bring Word to the foreground
-        SetForegroundWindow(hwnd);
+            // Bring Word to the foreground
+            SetForegroundWindow((IntPtr)word.ActiveWindow.Hwnd);
 
-        await process.WaitForExitAsync();
+            await process.WaitForExitAsync();
 
-        Marshal.ReleaseComObject(compare);
-        Marshal.ReleaseComObject(word);
-        JobObject.Close(job);
+            Marshal.ReleaseComObject(compare);
+        }
+        catch
+        {
+            // If setup fails (e.g. invalid file path), gracefully quit Word
+            // then force-kill as a fallback to prevent zombie processes.
+            QuitAndKill(word, process);
+            throw;
+        }
+        finally
+        {
+            Marshal.ReleaseComObject(word);
+            process?.Dispose();
+            JobObject.Close(job);
+        }
 
         RestoreRibbon(wordType);
     }
@@ -126,9 +154,21 @@ public static partial class Word
         }
     }
 
+    // RestoreRibbon creates a temporary Word instance solely to un-minimize the
+    // ribbon so the user's next normal Word session isn't affected. This instance
+    // is assigned to its own Job Object and has a kill fallback to prevent zombies
+    // (previously it had neither, making it the primary source of leaked processes).
     static void RestoreRibbon(Type wordType)
     {
+        var job = JobObject.Create();
+        var existingPids = GetWordProcessIds();
         dynamic word = Activator.CreateInstance(wordType)!;
+        var process = FindNewWordProcess(existingPids);
+        if (process != null)
+        {
+            JobObject.AssignProcess(job, process.Handle);
+        }
+
         try
         {
             word.DisplayAlerts = 0;
@@ -145,10 +185,64 @@ public static partial class Word
 
             word.Quit();
         }
+        catch
+        {
+            QuitAndKill(word, process);
+        }
         finally
         {
             Marshal.ReleaseComObject(word);
+            process?.Dispose();
+            JobObject.Close(job);
         }
+    }
+
+    // Attempts a graceful COM Quit, then force-kills the process as a fallback.
+    // All exceptions are swallowed because this runs in error/cleanup paths where
+    // COM may already be disconnected or the process may have exited.
+    internal static void QuitAndKill(dynamic word, Process? process)
+    {
+        try { word.Quit(SaveChanges: false); }
+        catch { /* COM may already be disconnected */ }
+
+        if (process is { HasExited: false })
+        {
+            try { process.Kill(); }
+            catch { /* Process may have exited between check and kill */ }
+        }
+    }
+
+    // Snapshots current WINWORD PIDs. Used with FindNewWordProcess to identify
+    // the process created by Activator.CreateInstance without needing a window handle.
+    internal static HashSet<int> GetWordProcessIds()
+    {
+        var pids = new HashSet<int>();
+        foreach (var p in Process.GetProcessesByName("WINWORD"))
+        {
+            pids.Add(p.Id);
+            p.Dispose();
+        }
+        return pids;
+    }
+
+    // Finds the WINWORD process that appeared after the snapshot was taken.
+    // If multiple new processes appear (rare race condition), keeps the last one found.
+    internal static Process? FindNewWordProcess(HashSet<int> existingPids)
+    {
+        Process? found = null;
+        foreach (var p in Process.GetProcessesByName("WINWORD"))
+        {
+            if (!existingPids.Contains(p.Id))
+            {
+                found?.Dispose();
+                found = p;
+            }
+            else
+            {
+                p.Dispose();
+            }
+        }
+        return found;
     }
 
     [LibraryImport("user32.dll")]
