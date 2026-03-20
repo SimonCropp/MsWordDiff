@@ -196,6 +196,7 @@ This will open Microsoft Spreadsheet Compare showing the differences between the
 
 <img src="/src/excelDiff.png">
 
+
 ### Spreadsheet Compare Availability
 
 Spreadsheet Compare is only included with certain Office editions:
@@ -209,9 +210,6 @@ It is **not** included with:
  * Office Home & Student
  * Office Home & Business
  * Office Standard
-
-**Learn more:**
-- [Compare two versions of a workbook by using Spreadsheet Compare - Microsoft Support](https://support.microsoft.com/en-us/office/compare-two-versions-of-a-workbook-by-using-spreadsheet-compare-0e1627fd-ce14-4c33-9ab1-8ea82c6a5a7e)
 
 
 ### Configuration
