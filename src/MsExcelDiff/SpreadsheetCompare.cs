@@ -80,6 +80,7 @@ public static class SpreadsheetCompare
             using var process = await LaunchProcess(exe, tempFile);
 
             JobObject.AssignProcess(job, process.Handle);
+            await WindowLayout.MaximizeAndCenterSplits(process);
             await process.WaitForExitAsync();
         }
         catch when (TempFiles.TryDelete(tempFile))
