@@ -4,29 +4,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MsWordDiff is a .NET global tool that compares two Word documents using Microsoft Word's COM automation. It opens Word with a comparison view showing tracked changes between documents.
+MsOfficeDiff is a repository containing .NET global tools for comparing Microsoft Office documents:
+
+- **MsWordDiff** (`diffword`) - Compares two Word documents using Microsoft Word's COM automation, showing tracked changes.
+- **MsExcelDiff** (`diffexcel`) - Compares two Excel workbooks using Microsoft's Spreadsheet Compare (`SPREADSHEETCOMPARE.EXE`).
 
 ## Solution
 
-`src/MsWordDiff.slnx`
+`src/MsOfficeDiff.slnx`
 
 ## Build Commands
 
 ```bash
 # Build the solution
-dotnet build src/MsWordDiff.slnx
+dotnet build src/MsOfficeDiff.slnx
 
 # Build release
 dotnet build src --configuration Release
 
-# Install as global tool locally
+# Install MsWordDiff as global tool locally
 dotnet pack src/MsWordDiff/MsWordDiff.csproj
 dotnet tool install -g MsWordDiff --add-source ./nugets
+
+# Install MsExcelDiff as global tool locally
+dotnet pack src/MsExcelDiff/MsExcelDiff.csproj
+dotnet tool install -g MsExcelDiff --add-source ./nugets
 ```
 
-## Architecture
-
-The codebase is minimal with the following components:
+## MsWordDiff Architecture
 
 - **Word.cs** - Core functionality using COM interop to automate Microsoft Word:
   - Opens documents read-only via `Word.Application` COM object
@@ -59,11 +64,9 @@ The codebase is minimal with the following components:
 
 - **Logging.cs** - Serilog configuration writing to console and rolling file logs
 
-## MsExcelDiff Project
+## MsExcelDiff Architecture
 
-MsExcelDiff is a separate .NET global tool (`diffexcel`) that compares two Excel workbooks using Microsoft's Spreadsheet Compare (`SPREADSHEETCOMPARE.EXE`), bundled with Office Professional Plus / Microsoft 365 Apps for Enterprise.
-
-### Architecture
+MsExcelDiff compares two Excel workbooks using Microsoft's Spreadsheet Compare (`SPREADSHEETCOMPARE.EXE`), bundled with Office Professional Plus / Microsoft 365 Apps for Enterprise.
 
 - **SpreadsheetCompare.cs** - Core functionality:
   - Auto-detects `SPREADSHEETCOMPARE.EXE` in common Office install paths (Office16/Office15, x86/x64)
@@ -71,6 +74,7 @@ MsExcelDiff is a separate .NET global tool (`diffexcel`) that compares two Excel
   - Writes both file paths to a temp file (one per line) and passes it as argument
   - `AppVLP.exe` is a launcher that exits immediately; the code finds the real `SPREADSHEETCOMPARE` process by name
   - Creates Windows Job Object to terminate Spreadsheet Compare when parent exits
+  - Maximizes the Spreadsheet Compare window and brings it to foreground after launch
   - Temp file is deleted by the exe on success; cleaned up on failure
 
 - **CompareCommand.cs** - Default CliFx command:
@@ -94,13 +98,6 @@ Click-to-Run Office installs require launching `SPREADSHEETCOMPARE.EXE` via `App
 AppVLP.exe "...\SPREADSHEETCOMPARE.EXE"
 ```
 
-### Build & Install
-
-```bash
-dotnet pack src/MsExcelDiff/MsExcelDiff.csproj
-dotnet tool install -g MsExcelDiff --add-source ./nugets
-```
-
 ## Testing
 
 Uses TUnit framework.
@@ -117,7 +114,8 @@ MsWordDiff `[Explicit]` tests require Word to be installed. MsExcelDiff `[Explic
 
 ## Key Technical Details
 
-- Uses dynamic COM interop (no Word interop assemblies required)
+- MsWordDiff uses dynamic COM interop (no Word interop assemblies required)
+- MsExcelDiff launches external Spreadsheet Compare exe (no COM)
 - Windows-only due to COM automation and Windows Forms dependency
 - Targets .NET 10.0 with `RollForward: LatestMajor` for compatibility
 - Warnings CA1416 (platform compatibility) suppressed intentionally
