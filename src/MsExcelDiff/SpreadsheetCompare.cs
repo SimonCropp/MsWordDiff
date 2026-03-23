@@ -267,10 +267,7 @@ public static partial class SpreadsheetCompare
 
     static void CenterSplit(List<(IntPtr Handle, IntPtr Parent, string ClassName, RECT Rect)> children, SplitOrientation orientation)
     {
-        var bestArea = 0;
-        var bestFirstRect = default(RECT);
-        var bestSecondRect = default(RECT);
-        var bestParent = IntPtr.Zero;
+        var matches = new List<(RECT First, RECT Second, IntPtr Parent)>();
 
         foreach (var group in children.GroupBy(c => c.Parent))
         {
@@ -299,16 +296,14 @@ public static partial class SpreadsheetCompare
                     if (orientation == SplitOrientation.Vertical)
                     {
                         // Side-by-side: same height/top, span parent width
-                        isMatch = heightA >= 100 && heightB >= 100 &&
-                                  Math.Abs(heightA - heightB) <= 20 &&
+                        isMatch = Math.Abs(heightA - heightB) <= 20 &&
                                   Math.Abs(a.Rect.Top - b.Rect.Top) <= 20 &&
                                   Math.Max(a.Rect.Right, b.Rect.Right) - Math.Min(a.Rect.Left, b.Rect.Left) >= parentClient.Right * 0.8;
                     }
                     else
                     {
                         // Stacked: same width/left, span parent height
-                        isMatch = widthA >= 100 && widthB >= 100 &&
-                                  Math.Abs(widthA - widthB) <= 20 &&
+                        isMatch = Math.Abs(widthA - widthB) <= 20 &&
                                   Math.Abs(a.Rect.Left - b.Rect.Left) <= 20 &&
                                   Math.Max(a.Rect.Bottom, b.Rect.Bottom) - Math.Min(a.Rect.Top, b.Rect.Top) >= parentClient.Bottom * 0.8;
                     }
@@ -321,17 +316,18 @@ public static partial class SpreadsheetCompare
                     // Require a gap between the panels (the splitter bar).
                     // Adjacent windows without a gap (e.g. ribbon/content) are not splits.
                     int gap;
+                    RECT first, second;
                     if (orientation == SplitOrientation.Vertical)
                     {
-                        var left = a.Rect.Left < b.Rect.Left ? a.Rect : b.Rect;
-                        var right = a.Rect.Left < b.Rect.Left ? b.Rect : a.Rect;
-                        gap = right.Left - left.Right;
+                        first = a.Rect.Left <= b.Rect.Left ? a.Rect : b.Rect;
+                        second = a.Rect.Left <= b.Rect.Left ? b.Rect : a.Rect;
+                        gap = second.Left - first.Right;
                     }
                     else
                     {
-                        var top = a.Rect.Top < b.Rect.Top ? a.Rect : b.Rect;
-                        var bottom = a.Rect.Top < b.Rect.Top ? b.Rect : a.Rect;
-                        gap = bottom.Top - top.Bottom;
+                        first = a.Rect.Top <= b.Rect.Top ? a.Rect : b.Rect;
+                        second = a.Rect.Top <= b.Rect.Top ? b.Rect : a.Rect;
+                        gap = second.Top - first.Bottom;
                     }
 
                     if (gap <= 0)
@@ -339,64 +335,50 @@ public static partial class SpreadsheetCompare
                         continue;
                     }
 
-                    var area = widthA * heightA + widthB * heightB;
-                    if (area <= bestArea)
-                    {
-                        continue;
-                    }
-
-                    bestArea = area;
-                    bestParent = group.Key;
-                    if (orientation == SplitOrientation.Vertical)
-                    {
-                        bestFirstRect = a.Rect.Left <= b.Rect.Left ? a.Rect : b.Rect;
-                        bestSecondRect = a.Rect.Left <= b.Rect.Left ? b.Rect : a.Rect;
-                    }
-                    else
-                    {
-                        bestFirstRect = a.Rect.Top <= b.Rect.Top ? a.Rect : b.Rect;
-                        bestSecondRect = a.Rect.Top <= b.Rect.Top ? b.Rect : a.Rect;
-                    }
+                    matches.Add((first, second, group.Key));
                 }
             }
         }
 
-        if (bestArea == 0)
+        if (matches.Count == 0)
         {
-            Log.Information("CenterSplit({Orientation}): no matching pair found", orientation);
+            Log.Information("CenterSplit({Orientation}): no matching pairs found", orientation);
             return;
         }
 
-        // Compute splitter position and target in screen coordinates
-        GetWindowRect(bestParent, out var parentRect);
-
-        int fromX, fromY, toX, toY;
-        if (orientation == SplitOrientation.Vertical)
+        foreach (var match in matches)
         {
-            fromX = (bestFirstRect.Right + bestSecondRect.Left) / 2;
-            fromY = (bestFirstRect.Top + bestFirstRect.Bottom) / 2;
-            toX = (parentRect.Left + parentRect.Right) / 2;
-            toY = fromY;
-        }
-        else
-        {
-            fromX = (bestFirstRect.Left + bestFirstRect.Right) / 2;
-            fromY = (bestFirstRect.Bottom + bestSecondRect.Top) / 2;
-            toX = fromX;
-            toY = (parentRect.Top + parentRect.Bottom) / 2;
-        }
+            GetWindowRect(match.Parent, out var parentRect);
 
-        Log.Information(
-            "CenterSplit({Orientation}): drag screen ({FromX},{FromY}) to ({ToX},{ToY})",
-            orientation, fromX, fromY, toX, toY);
+            int fromX, fromY, toX, toY;
+            if (orientation == SplitOrientation.Vertical)
+            {
+                fromX = (match.First.Right + match.Second.Left) / 2;
+                fromY = (match.First.Top + match.First.Bottom) / 2;
+                toX = (parentRect.Left + parentRect.Right) / 2;
+                toY = fromY;
+            }
+            else
+            {
+                fromX = (match.First.Left + match.First.Right) / 2;
+                fromY = (match.First.Bottom + match.Second.Top) / 2;
+                toX = fromX;
+                toY = (parentRect.Top + parentRect.Bottom) / 2;
+            }
 
-        SetCursorPos(fromX, fromY);
-        Thread.Sleep(100);
-        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, IntPtr.Zero);
-        Thread.Sleep(100);
-        SetCursorPos(toX, toY);
-        Thread.Sleep(100);
-        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, IntPtr.Zero);
+            Log.Information(
+                "CenterSplit({Orientation}): drag screen ({FromX},{FromY}) to ({ToX},{ToY})",
+                orientation, fromX, fromY, toX, toY);
+
+            SetCursorPos(fromX, fromY);
+            Thread.Sleep(100);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, IntPtr.Zero);
+            Thread.Sleep(100);
+            SetCursorPos(toX, toY);
+            Thread.Sleep(100);
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, IntPtr.Zero);
+            Thread.Sleep(100);
+        }
     }
 
     const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
