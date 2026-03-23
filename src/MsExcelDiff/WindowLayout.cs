@@ -11,11 +11,9 @@ static partial class WindowLayout
             if (process.MainWindowHandle != IntPtr.Zero)
             {
                 // SW_MAXIMIZE = 3
+                // ShowWindow is synchronous — WinForms processes WM_SIZE and
+                // lays out child controls before it returns, so no delay needed.
                 ShowWindow(process.MainWindowHandle, 3);
-                SetForegroundWindow(process.MainWindowHandle);
-
-                // Wait for the window to finish layout after maximize
-                await Task.Delay(500);
                 CenterSplits(process.MainWindowHandle);
                 return;
             }
@@ -224,10 +222,6 @@ static partial class WindowLayout
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool SetForegroundWindow(IntPtr hWnd);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
