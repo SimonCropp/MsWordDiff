@@ -225,7 +225,7 @@ public static partial class SpreadsheetCompare
 
                 // Wait briefly for the window to finish layout after maximize
                 await Task.Delay(500);
-                CenterVerticalSplit(process.MainWindowHandle);
+                CenterSplits(process.MainWindowHandle);
                 return;
             }
 
@@ -233,9 +233,8 @@ public static partial class SpreadsheetCompare
         }
     }
 
-    static void CenterVerticalSplit(IntPtr mainWindow)
+    static void CenterSplits(IntPtr mainWindow)
     {
-        // Collect all child windows with their parent, class name, and rect
         var children = new List<(IntPtr Handle, IntPtr Parent, string ClassName, RECT Rect)>();
         EnumChildWindows(mainWindow, (hwnd, _) =>
         {
@@ -245,8 +244,7 @@ public static partial class SpreadsheetCompare
             return true;
         }, IntPtr.Zero);
 
-        // Log child window hierarchy for diagnostics
-        Log.Information("CenterVerticalSplit: found {Count} child windows", children.Count);
+        Log.Information("CenterSplits: found {Count} child windows", children.Count);
         foreach (var child in children)
         {
             var w = child.Rect.Right - child.Rect.Left;
@@ -257,12 +255,21 @@ public static partial class SpreadsheetCompare
                 child.Rect.Left, child.Rect.Top, w, h);
         }
 
-        // Find the vertical splitter: look for pairs of side-by-side siblings
-        // with similar height that together span most of their parent's width.
-        // Pick the pair with the largest combined area.
+        CenterSplit(children, SplitOrientation.Vertical);
+        CenterSplit(children, SplitOrientation.Horizontal);
+    }
+
+    enum SplitOrientation
+    {
+        Vertical,
+        Horizontal
+    }
+
+    static void CenterSplit(List<(IntPtr Handle, IntPtr Parent, string ClassName, RECT Rect)> children, SplitOrientation orientation)
+    {
         var bestArea = 0;
-        var bestLeftRect = default(RECT);
-        var bestRightRect = default(RECT);
+        var bestFirstRect = default(RECT);
+        var bestSecondRect = default(RECT);
         var bestParent = IntPtr.Zero;
 
         foreach (var group in children.GroupBy(c => c.Parent))
@@ -275,33 +282,64 @@ public static partial class SpreadsheetCompare
                 {
                     var a = siblings[i];
                     var b = siblings[j];
+                    var widthA = a.Rect.Right - a.Rect.Left;
+                    var widthB = b.Rect.Right - b.Rect.Left;
                     var heightA = a.Rect.Bottom - a.Rect.Top;
                     var heightB = b.Rect.Bottom - b.Rect.Top;
 
-                    var widthA = a.Rect.Right - a.Rect.Left;
-                    var widthB = b.Rect.Right - b.Rect.Left;
-
-                    if (heightA < 100 || heightB < 100 ||
-                        widthA <= 0 || widthB <= 0)
-                    {
-                        continue;
-                    }
-
-                    if (Math.Abs(heightA - heightB) > 20 ||
-                        Math.Abs(a.Rect.Top - b.Rect.Top) > 20)
+                    if (widthA <= 0 || widthB <= 0 ||
+                        heightA <= 0 || heightB <= 0)
                     {
                         continue;
                     }
 
                     GetClientRect(group.Key, out var parentClient);
-                    var totalSpan = Math.Max(a.Rect.Right, b.Rect.Right) - Math.Min(a.Rect.Left, b.Rect.Left);
-                    if (totalSpan < parentClient.Right * 0.8)
+
+                    bool isMatch;
+                    if (orientation == SplitOrientation.Vertical)
+                    {
+                        // Side-by-side: same height/top, span parent width
+                        isMatch = heightA >= 100 && heightB >= 100 &&
+                                  Math.Abs(heightA - heightB) <= 20 &&
+                                  Math.Abs(a.Rect.Top - b.Rect.Top) <= 20 &&
+                                  Math.Max(a.Rect.Right, b.Rect.Right) - Math.Min(a.Rect.Left, b.Rect.Left) >= parentClient.Right * 0.8;
+                    }
+                    else
+                    {
+                        // Stacked: same width/left, span parent height
+                        isMatch = widthA >= 100 && widthB >= 100 &&
+                                  Math.Abs(widthA - widthB) <= 20 &&
+                                  Math.Abs(a.Rect.Left - b.Rect.Left) <= 20 &&
+                                  Math.Max(a.Rect.Bottom, b.Rect.Bottom) - Math.Min(a.Rect.Top, b.Rect.Top) >= parentClient.Bottom * 0.8;
+                    }
+
+                    if (!isMatch)
                     {
                         continue;
                     }
 
-                    var area = (a.Rect.Right - a.Rect.Left) * heightA +
-                               (b.Rect.Right - b.Rect.Left) * heightB;
+                    // Require a gap between the panels (the splitter bar).
+                    // Adjacent windows without a gap (e.g. ribbon/content) are not splits.
+                    int gap;
+                    if (orientation == SplitOrientation.Vertical)
+                    {
+                        var left = a.Rect.Left < b.Rect.Left ? a.Rect : b.Rect;
+                        var right = a.Rect.Left < b.Rect.Left ? b.Rect : a.Rect;
+                        gap = right.Left - left.Right;
+                    }
+                    else
+                    {
+                        var top = a.Rect.Top < b.Rect.Top ? a.Rect : b.Rect;
+                        var bottom = a.Rect.Top < b.Rect.Top ? b.Rect : a.Rect;
+                        gap = bottom.Top - top.Bottom;
+                    }
+
+                    if (gap <= 0)
+                    {
+                        continue;
+                    }
+
+                    var area = widthA * heightA + widthB * heightB;
                     if (area <= bestArea)
                     {
                         continue;
@@ -309,15 +347,15 @@ public static partial class SpreadsheetCompare
 
                     bestArea = area;
                     bestParent = group.Key;
-                    if (a.Rect.Left <= b.Rect.Left)
+                    if (orientation == SplitOrientation.Vertical)
                     {
-                        bestLeftRect = a.Rect;
-                        bestRightRect = b.Rect;
+                        bestFirstRect = a.Rect.Left <= b.Rect.Left ? a.Rect : b.Rect;
+                        bestSecondRect = a.Rect.Left <= b.Rect.Left ? b.Rect : a.Rect;
                     }
                     else
                     {
-                        bestLeftRect = b.Rect;
-                        bestRightRect = a.Rect;
+                        bestFirstRect = a.Rect.Top <= b.Rect.Top ? a.Rect : b.Rect;
+                        bestSecondRect = a.Rect.Top <= b.Rect.Top ? b.Rect : a.Rect;
                     }
                 }
             }
@@ -325,38 +363,44 @@ public static partial class SpreadsheetCompare
 
         if (bestArea == 0)
         {
-            Log.Information("CenterVerticalSplit: no matching split panel pair found");
+            Log.Information("CenterSplit({Orientation}): no matching pair found", orientation);
             return;
         }
 
-        // The splitter bar sits in the gap between the two panels.
-        // Convert splitter screen position to parent client coordinates and
-        // send mouse messages directly to the parent (SplitContainer) window.
-        var splitterScreenX = (bestLeftRect.Right + bestRightRect.Left) / 2;
-        var splitterScreenY = (bestLeftRect.Top + bestLeftRect.Bottom) / 2;
+        // Compute splitter position and target in screen coordinates
+        GetWindowRect(bestParent, out var parentRect);
 
-        var splitterPoint = new POINT { X = splitterScreenX, Y = splitterScreenY };
-        ScreenToClient(bestParent, ref splitterPoint);
-
-        GetClientRect(bestParent, out var client);
-        var targetClientX = client.Right / 2;
+        int fromX, fromY, toX, toY;
+        if (orientation == SplitOrientation.Vertical)
+        {
+            fromX = (bestFirstRect.Right + bestSecondRect.Left) / 2;
+            fromY = (bestFirstRect.Top + bestFirstRect.Bottom) / 2;
+            toX = (parentRect.Left + parentRect.Right) / 2;
+            toY = fromY;
+        }
+        else
+        {
+            fromX = (bestFirstRect.Left + bestFirstRect.Right) / 2;
+            fromY = (bestFirstRect.Bottom + bestSecondRect.Top) / 2;
+            toX = fromX;
+            toY = (parentRect.Top + parentRect.Bottom) / 2;
+        }
 
         Log.Information(
-            "CenterVerticalSplit: sending drag from client ({FromX},{FromY}) to ({ToX},{ToY})",
-            splitterPoint.X, splitterPoint.Y, targetClientX, splitterPoint.Y);
+            "CenterSplit({Orientation}): drag screen ({FromX},{FromY}) to ({ToX},{ToY})",
+            orientation, fromX, fromY, toX, toY);
 
-        var downLParam = MakeLParam(splitterPoint.X, splitterPoint.Y);
-        var moveLParam = MakeLParam(targetClientX, splitterPoint.Y);
-
-        // WM_LBUTTONDOWN = 0x0201, WM_MOUSEMOVE = 0x0200, WM_LBUTTONUP = 0x0202
-        // MK_LBUTTON = 0x0001
-        SendMessage(bestParent, 0x0201, (IntPtr)0x0001, downLParam);
-        SendMessage(bestParent, 0x0200, (IntPtr)0x0001, moveLParam);
-        SendMessage(bestParent, 0x0202, IntPtr.Zero, moveLParam);
+        SetCursorPos(fromX, fromY);
+        Thread.Sleep(100);
+        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, IntPtr.Zero);
+        Thread.Sleep(100);
+        SetCursorPos(toX, toY);
+        Thread.Sleep(100);
+        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, IntPtr.Zero);
     }
 
-    static IntPtr MakeLParam(int x, int y) =>
-        (IntPtr)((y << 16) | (x & 0xFFFF));
+    const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+    const uint MOUSEEVENTF_LEFTUP = 0x0004;
 
     delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
@@ -397,10 +441,10 @@ public static partial class SpreadsheetCompare
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool ScreenToClient(IntPtr hWnd, ref POINT lpPoint);
+    private static partial bool SetCursorPos(int x, int y);
 
-    [LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
-    private static partial IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+    [LibraryImport("user32.dll")]
+    private static partial void mouse_event(uint dwFlags, int dx, int dy, uint dwData, IntPtr dwExtraInfo);
 
     static string GetWindowClassName(IntPtr hWnd)
     {
