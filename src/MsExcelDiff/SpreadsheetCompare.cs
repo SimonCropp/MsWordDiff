@@ -348,41 +348,57 @@ public static partial class SpreadsheetCompare
 
         foreach (var match in matches)
         {
-            GetWindowRect(match.Parent, out var parentRect);
+            // Convert screen coordinates to client coordinates of the parent (SplitContainer)
+            var fromScreen = new POINT();
+            var toScreen = new POINT();
+            GetClientRect(match.Parent, out var client);
 
-            int fromX, fromY, toX, toY;
             if (orientation == SplitOrientation.Vertical)
             {
-                fromX = (match.First.Right + match.Second.Left) / 2;
-                fromY = (match.First.Top + match.First.Bottom) / 2;
-                toX = (parentRect.Left + parentRect.Right) / 2;
-                toY = fromY;
+                fromScreen.X = (match.First.Right + match.Second.Left) / 2;
+                fromScreen.Y = (match.First.Top + match.First.Bottom) / 2;
+                toScreen.X = fromScreen.X; // will be overwritten after conversion
+                toScreen.Y = fromScreen.Y;
             }
             else
             {
-                fromX = (match.First.Left + match.First.Right) / 2;
-                fromY = (match.First.Bottom + match.Second.Top) / 2;
-                toX = fromX;
-                toY = (parentRect.Top + parentRect.Bottom) / 2;
+                fromScreen.X = (match.First.Left + match.First.Right) / 2;
+                fromScreen.Y = (match.First.Bottom + match.Second.Top) / 2;
+                toScreen.X = fromScreen.X;
+                toScreen.Y = fromScreen.Y;
+            }
+
+            ScreenToClient(match.Parent, ref fromScreen);
+
+            var toClient = new POINT { X = fromScreen.X, Y = fromScreen.Y };
+            if (orientation == SplitOrientation.Vertical)
+            {
+                toClient.X = client.Right / 2;
+            }
+            else
+            {
+                toClient.Y = client.Bottom / 2;
             }
 
             Log.Information(
-                "CenterSplit({Orientation}): drag screen ({FromX},{FromY}) to ({ToX},{ToY})",
-                orientation, fromX, fromY, toX, toY);
+                "CenterSplit({Orientation}): PostMessage drag client ({FromX},{FromY}) to ({ToX},{ToY})",
+                orientation, fromScreen.X, fromScreen.Y, toClient.X, toClient.Y);
 
-            SetCursorPos(fromX, fromY);
-            Thread.Sleep(100);
-            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, IntPtr.Zero);
-            Thread.Sleep(100);
-            SetCursorPos(toX, toY);
-            Thread.Sleep(100);
-            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, IntPtr.Zero);
+            var downLParam = MakeLParam(fromScreen.X, fromScreen.Y);
+            var moveLParam = MakeLParam(toClient.X, toClient.Y);
+
+            // WM_LBUTTONDOWN=0x0201 WM_MOUSEMOVE=0x0200 WM_LBUTTONUP=0x0202 MK_LBUTTON=0x0001
+            PostMessage(match.Parent, 0x0201, (IntPtr)0x0001, downLParam);
+            Thread.Sleep(50);
+            PostMessage(match.Parent, 0x0200, (IntPtr)0x0001, moveLParam);
+            Thread.Sleep(50);
+            PostMessage(match.Parent, 0x0202, IntPtr.Zero, moveLParam);
             Thread.Sleep(100);
         }
     }
 
-    const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
-    const uint MOUSEEVENTF_LEFTUP = 0x0004;
+    static IntPtr MakeLParam(int x, int y) =>
+        (IntPtr)((y << 16) | (x & 0xFFFF));
 
     delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
@@ -423,10 +439,11 @@ public static partial class SpreadsheetCompare
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool SetCursorPos(int x, int y);
+    private static partial bool ScreenToClient(IntPtr hWnd, ref POINT lpPoint);
 
-    [LibraryImport("user32.dll")]
-    private static partial void mouse_event(uint dwFlags, int dx, int dy, uint dwData, IntPtr dwExtraInfo);
+    [LibraryImport("user32.dll", EntryPoint = "PostMessageW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
     static string GetWindowClassName(IntPtr hWnd)
     {
