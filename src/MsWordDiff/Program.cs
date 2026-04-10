@@ -1,54 +1,38 @@
 public static class Program
 {
-    static List<Type> commands = typeof(Program)
-        .Assembly
-        .GetTypes()
-        .Where(_ => _.IsAssignableTo(typeof(ICommand)) && !_.IsAbstract)
-        .ToList();
-
     public static async Task<int> Main(string[] args)
     {
         Logging.Init();
 
-        await using var services = ServiceProvider(null);
-        var settingsManager = services.GetRequiredService<SettingsManager>();
+        var settingsManager = new SettingsManager(SettingsManager.DefaultSettingsPath);
         await settingsManager.Setup();
-        var builder = CreateBuilder(services);
+        var builder = CreateBuilder(settingsManager);
         return await builder
             .Build()
             .RunAsync(args);
     }
 
-    public static CliApplicationBuilder CreateBuilder(string? settingsPath = null)
-    {
-        var services = ServiceProvider(settingsPath);
-        return CreateBuilder(services);
-    }
-
-    static ServiceProvider ServiceProvider(string? settingsPath)
+    public static CommandLineApplicationBuilder CreateBuilder(string? settingsPath = null)
     {
         var settingsManager = new SettingsManager(settingsPath ?? SettingsManager.DefaultSettingsPath);
-        var services = new ServiceCollection();
-        services.AddSingleton(settingsManager);
-
-        foreach (var type in commands)
-        {
-            services.AddSingleton(type);
-        }
-
-        return services.BuildServiceProvider();
+        return CreateBuilder(settingsManager);
     }
 
-    static CliApplicationBuilder CreateBuilder(ServiceProvider serviceProvider)
+    static CommandLineApplicationBuilder CreateBuilder(SettingsManager settingsManager)
     {
-        var builder = new CliApplicationBuilder();
-        foreach (var type in commands)
-        {
-            builder.AddCommand(type);
-        }
-        var activator = new DependencyInjectionTypeActivator(serviceProvider);
+        var builder = new CommandLineApplicationBuilder();
+        builder.AddCommandsFromThisAssembly();
         builder.SetExecutableName("diffword");
-        builder.UseTypeActivator(activator);
+        builder.UseTypeInstantiator(commands =>
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton(settingsManager);
+            foreach (var command in commands)
+            {
+                services.AddSingleton(command.Type);
+            }
+            return services.BuildServiceProvider();
+        });
         return builder;
     }
 }

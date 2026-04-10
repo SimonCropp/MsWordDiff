@@ -1,8 +1,8 @@
 [Command("set-path", Description = "Set the path to SPREADSHEETCOMPARE.EXE. Settings are saved in the user configuration file.")]
-public class SetSpreadsheetComparePathCommand(SettingsManager settingsManager) : ICommand
+public partial class SetSpreadsheetComparePathCommand(SettingsManager settingsManager) : ICommand
 {
     [CommandParameter(0, Name = "value", Description = "Path to SPREADSHEETCOMPARE.EXE, or empty to clear and revert to auto-detection")]
-    public string? Value { get; init; }
+    public string? Value { get; set; }
 
     public async ValueTask ExecuteAsync(IConsole console)
     {

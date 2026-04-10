@@ -1,14 +1,14 @@
 [Command(Description = "Compare two Word documents side by side using Microsoft Word")]
-public class CompareCommand(SettingsManager settingsManager) : ICommand
+public partial class CompareCommand(SettingsManager settingsManager) : ICommand
 {
     [CommandParameter(0, Name = "path1", Description = "Path to the first Word document")]
-    public required FileInfo Path1 { get; init; }
+    public required FileInfo Path1 { get; set; }
 
     [CommandParameter(1, Name = "path2", Description = "Path to the second Word document")]
-    public required FileInfo Path2 { get; init; }
+    public required FileInfo Path2 { get; set; }
 
     [CommandOption("quiet", Description = "Hide source documents in the comparison view. Default can be set via 'set-quiet' command")]
-    public bool? Quiet { get; init; }
+    public bool? Quiet { get; set; }
 
     public async ValueTask ExecuteAsync(IConsole console)
     {

@@ -1,5 +1,5 @@
 [Command("settings", Description = "Display the settings")]
-public class SettingsPathCommand(SettingsManager settingsManager) : ICommand
+public partial class SettingsPathCommand(SettingsManager settingsManager) : ICommand
 {
     public async ValueTask ExecuteAsync(IConsole console)
     {

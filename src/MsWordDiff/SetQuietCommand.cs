@@ -1,8 +1,8 @@
 ﻿[Command("set-quiet", Description = "Set the default value for the Quiet option. Settings are saved in the user configuration file.")]
-public class SetQuietCommand(SettingsManager settingsManager) : ICommand
+public partial class SetQuietCommand(SettingsManager settingsManager) : ICommand
 {
     [CommandParameter(0, Name = "value", Description = "true to enable Quiet mode by default, false to disable")]
-    public required bool Value { get; init; }
+    public required bool Value { get; set; }
 
     public async ValueTask ExecuteAsync(IConsole console)
     {

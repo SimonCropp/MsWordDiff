@@ -1,11 +1,11 @@
 [Command(Description = "Compare two Excel workbooks using Microsoft Spreadsheet Compare")]
-public class CompareCommand(SettingsManager settingsManager) : ICommand
+public partial class CompareCommand(SettingsManager settingsManager) : ICommand
 {
     [CommandParameter(0, Name = "path1", Description = "Path to the first Excel workbook")]
-    public required FileInfo Path1 { get; init; }
+    public required FileInfo Path1 { get; set; }
 
     [CommandParameter(1, Name = "path2", Description = "Path to the second Excel workbook")]
-    public required FileInfo Path2 { get; init; }
+    public required FileInfo Path2 { get; set; }
 
     public async ValueTask ExecuteAsync(IConsole console)
     {

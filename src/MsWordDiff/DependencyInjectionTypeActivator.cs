@@ -1,5 +1,5 @@
 public class DependencyInjectionTypeActivator(IServiceProvider provider) :
-    ITypeActivator
+    ITypeInstantiator
 {
     public object CreateInstance(Type type) => provider.GetRequiredService(type);
 }
