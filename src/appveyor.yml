@@ -11,7 +11,12 @@ build_script:
 - dotnet run --project  src\MsExcelDiff.Tests -c Release --no-build
 - dotnet run --project  src\MsWordDiff.Tests -c Release --no-build
 on_failure:
-  - ps: Get-ChildItem *.received.* -recurse | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+  - ps: |
+      $root = (Get-Location).Path
+      Get-ChildItem *.received.* -Recurse | % {
+        $rel = $_.FullName.Substring($root.Length + 1)
+        Push-AppveyorArtifact $_.FullName -FileName $rel
+      }
 test: off
 artifacts:
 - path: nugets\*.nupkg
